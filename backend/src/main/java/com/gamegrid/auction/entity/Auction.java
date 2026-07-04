@@ -47,13 +47,10 @@ public class Auction {
     @Column(columnDefinition = "TEXT")
     private String events;
 
-    @Column(name = "min_men", nullable = false)
+    @Column(name = "roster_rules", columnDefinition = "TEXT")
+    @Convert(converter = RosterRulesConverter.class)
     @Builder.Default
-    private int minMen = 4;
-
-    @Column(name = "min_women", nullable = false)
-    @Builder.Default
-    private int minWomen = 2;
+    private java.util.List<RosterRule> rosterRules = new java.util.ArrayList<>();
 
     @Builder.Default
     @Column(name = "is_deleted", nullable = false)

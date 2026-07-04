@@ -33,14 +33,17 @@ public class AuctionService {
     @Transactional
     public AuctionResponse createAuction(AuctionRequest request) {
         validateAuctionRequest(request);
+        String eventName = request.getEventName();
+        if (eventName == null || eventName.trim().isEmpty()) {
+            eventName = request.getAuctionName();
+        }
 
         Auction auction = Auction.builder()
                 .auctionName(request.getAuctionName())
-                .eventName(request.getEventName())
+                .eventName(eventName)
                 .category(request.getCategory())
                 .events(request.getEvents() == null ? null : String.join(",", request.getEvents()))
-                .minMen(request.getMinMen() > 0 ? request.getMinMen() : 4)
-                .minWomen(request.getMinWomen() > 0 ? request.getMinWomen() : 2)
+                .rosterRules(request.getRosterRules() == null ? new java.util.ArrayList<>() : request.getRosterRules())
                 .auctionDate(request.getAuctionDate())
                 .description(request.getDescription())
                 .minimumBid(request.getMinimumBid())
@@ -81,12 +84,16 @@ public class AuctionService {
 
         validateAuctionRequest(request);
 
+        String eventName = request.getEventName();
+        if (eventName == null || eventName.trim().isEmpty()) {
+            eventName = request.getAuctionName();
+        }
+
         auction.setAuctionName(request.getAuctionName());
-        auction.setEventName(request.getEventName());
+        auction.setEventName(eventName);
         auction.setCategory(request.getCategory());
         auction.setEvents(request.getEvents() == null ? null : String.join(",", request.getEvents()));
-        auction.setMinMen(request.getMinMen() > 0 ? request.getMinMen() : 4);
-        auction.setMinWomen(request.getMinWomen() > 0 ? request.getMinWomen() : 2);
+        auction.setRosterRules(request.getRosterRules() == null ? new java.util.ArrayList<>() : request.getRosterRules());
         auction.setAuctionDate(request.getAuctionDate());
         auction.setDescription(request.getDescription());
         auction.setMinimumBid(request.getMinimumBid());
@@ -167,8 +174,7 @@ public class AuctionService {
             throw new IllegalStateException("Only Draft auctions can be started.");
         }
 
-        auction.setStatus(AuctionStatus.Active);
-        auctionRepository.save(auction);
+
 
         // Initialize players queue for this category / events
         Specification<Player> spec;
@@ -200,6 +206,21 @@ public class AuctionService {
                 auctionPlayerRepository.save(ap);
             }
         }
+
+        // Validate enough registered players before starting
+        List<AuctionTeam> teams = auctionTeamRepository.findByAuctionId(id);
+        int requiredMinPlayers = teams.stream().mapToInt(AuctionTeam::getMinimumPlayers).sum();
+
+        List<AuctionPlayer> allRegisteredAuctionPlayers = auctionPlayerRepository.findByAuctionId(id);
+
+        if (allRegisteredAuctionPlayers.size() < requiredMinPlayers) {
+            String categoryDesc = auction.getEvents() != null ? auction.getEvents() : auction.getCategory();
+            throw new IllegalStateException("Cannot start auction: Not enough registered players in categories '" + categoryDesc 
+                    + "'. Required minimum: " + requiredMinPlayers + ", Registered in auction: " + allRegisteredAuctionPlayers.size());
+        }
+
+        auction.setStatus(AuctionStatus.Active);
+        auctionRepository.save(auction);
     }
 
     public Page<Auction> getAuctions(String search, AuctionStatus status, Pageable pageable) {
@@ -260,30 +281,7 @@ public class AuctionService {
             }
         }
 
-        // Validate enough registered players
-        long registeredPlayerCount = 0;
-        if (request.getEvents() != null && !request.getEvents().isEmpty()) {
-            Specification<Player> spec = (root, query, cb) -> {
-                List<Predicate> predicates = new ArrayList<>();
-                for (String ev : request.getEvents()) {
-                    predicates.add(cb.equal(cb.lower(root.get("category")), ev.toLowerCase().trim()));
-                }
-                return cb.or(predicates.toArray(new Predicate[0]));
-            };
-            registeredPlayerCount = playerRepository.count(spec);
-        } else if (request.getCategory() != null && !request.getCategory().isBlank()) {
-            Specification<Player> spec = (root, query, cb) -> 
-                cb.equal(cb.lower(root.get("category")), request.getCategory().toLowerCase().trim());
-            registeredPlayerCount = playerRepository.count(spec);
-        }
 
-        int requiredMinPlayers = request.getTeams().stream().mapToInt(TeamConfig::getMinimumPlayers).sum();
-
-        if (registeredPlayerCount < requiredMinPlayers) {
-            String categoryDesc = request.getEvents() != null ? String.join(", ", request.getEvents()) : request.getCategory();
-            throw new IllegalArgumentException("Not enough registered players for this auction categories '" + categoryDesc 
-                    + "'. Required minimum: " + requiredMinPlayers + ", Registered in categories: " + registeredPlayerCount);
-        }
     }
 
     private TeamConfig mapToTeamConfig(AuctionTeam team) {
@@ -308,8 +306,7 @@ public class AuctionService {
                 .eventName(auction.getEventName())
                 .category(auction.getCategory())
                 .events(eventList)
-                .minMen(auction.getMinMen())
-                .minWomen(auction.getMinWomen())
+                .rosterRules(auction.getRosterRules())
                 .auctionDate(auction.getAuctionDate())
                 .description(auction.getDescription())
                 .minimumBid(auction.getMinimumBid())
@@ -360,6 +357,7 @@ public class AuctionService {
                     .state(ap.getPlayer().getState())
                     .skillLevel(ap.getPlayer().getSkillLevel())
                     .photoPath(ap.getPlayer().getPhotoPath())
+                    .club(ap.getPlayer().getClub())
                     .basePrice(ap.getBasePrice())
                     .status(ap.getStatus())
                     .soldPrice(ap.getSoldPrice())

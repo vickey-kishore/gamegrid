@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import com.gamegrid.auction.entity.RosterRule;
 
 @Data
 @NoArgsConstructor
@@ -17,8 +18,7 @@ public class AuctionResponse {
     private String eventName;
     private String category;
     private List<String> events;
-    private int minMen;
-    private int minWomen;
+    private List<RosterRule> rosterRules;
     private LocalDate auctionDate;
     private String description;
     private BigDecimal minimumBid;

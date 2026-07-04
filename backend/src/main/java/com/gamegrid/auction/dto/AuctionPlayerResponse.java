@@ -22,6 +22,7 @@ public class AuctionPlayerResponse {
     private String state;
     private String skillLevel;
     private String photoPath;
+    private String club;
     private BigDecimal basePrice;
     private PlayerStatus status;
     private BigDecimal soldPrice;

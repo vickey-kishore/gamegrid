@@ -23,15 +23,22 @@ public class PlayerController {
     private final PlayerService playerService;
 
     @PostMapping(value = "/import", consumes = "multipart/form-data")
-    @Operation(summary = "Import registered players from an Excel sheet")
-    public ResponseEntity<PlayerImportResult> importPlayers(@RequestParam("file") MultipartFile file) {
+    @Operation(summary = "Import registered players from an Excel sheet (optionally register directly to an auction)")
+    public ResponseEntity<PlayerImportResult> importPlayers(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "auctionId", required = false) Long auctionId) {
         if (file.isEmpty()) {
             return ResponseEntity.badRequest().body(PlayerImportResult.builder()
                     .errors(java.util.List.of("Uploaded file is empty."))
                     .build());
         }
         
-        PlayerImportResult result = playerService.importPlayers(file);
+        PlayerImportResult result;
+        if (auctionId != null) {
+            result = playerService.importPlayersForAuction(auctionId, file);
+        } else {
+            result = playerService.importPlayers(file);
+        }
         return ResponseEntity.ok(result);
     }
 
@@ -58,5 +65,32 @@ public class PlayerController {
         return playerService.getPlayerById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping
+    @Operation(summary = "Create a new player (optionally register directly to an auction)")
+    public ResponseEntity<Player> createPlayer(
+            @jakarta.validation.Valid @RequestBody com.gamegrid.auction.dto.PlayerRequest request,
+            @RequestParam(value = "auctionId", required = false) Long auctionId) {
+        Player player = playerService.createPlayer(request, auctionId);
+        return new ResponseEntity<>(player, org.springframework.http.HttpStatus.CREATED);
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Update player details")
+    public ResponseEntity<Player> updatePlayer(
+            @PathVariable("id") Long id,
+            @jakarta.validation.Valid @RequestBody com.gamegrid.auction.dto.PlayerRequest request) {
+        Player player = playerService.updatePlayer(id, request);
+        return ResponseEntity.ok(player);
+    }
+
+    @DeleteMapping("/{id}/auction/{auctionId}")
+    @Operation(summary = "Remove player from a specific auction")
+    public ResponseEntity<Void> removePlayerFromAuction(
+            @PathVariable("id") Long id,
+            @PathVariable("auctionId") Long auctionId) {
+        playerService.removePlayerFromAuction(auctionId, id);
+        return ResponseEntity.ok().build();
     }
 }

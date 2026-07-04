@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.gamegrid.auction.controller.AuctionControllerIntegrationTest" time="18.329" tests="2" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.gamegrid.auction.controller.AuctionControllerIntegrationTest" time="22.716" tests="2" errors="0" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="17"/>
     <property name="sun.cpu.isalist" value="amd64"/>
@@ -55,7 +55,7 @@
     <property name="os.arch" value="amd64"/>
     <property name="maven.multiModuleProjectDirectory" value="C:\\Users\\kisho\\.gemini\\antigravity\\scratch\\gamegrid\\backend"/>
     <property name="java.vm.specification.name" value="Java Virtual Machine Specification"/>
-    <property name="PID" value="43972"/>
+    <property name="PID" value="28160"/>
     <property name="sun.os.patch.level" value=""/>
     <property name="CONSOLE_LOG_CHARSET" value="windows-1252"/>
     <property name="native.encoding" value="Cp1252"/>
@@ -68,9 +68,9 @@
     <property name="library.jansi.path" value="C:\\Program Files\\apache-maven-3.9.2\\lib\\jansi-native"/>
     <property name="java.class.version" value="61.0"/>
   </properties>
-  <testcase name="createAuction_success" classname="com.gamegrid.auction.controller.AuctionControllerIntegrationTest" time="2.117">
-    <system-out><![CDATA[09:37:06.520 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.gamegrid.auction.controller.AuctionControllerIntegrationTest]: AuctionControllerIntegrationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-09:37:06.993 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.gamegrid.auction.AuctionApplication for test class com.gamegrid.auction.controller.AuctionControllerIntegrationTest
+  <testcase name="createAuction_success" classname="com.gamegrid.auction.controller.AuctionControllerIntegrationTest" time="6.55">
+    <system-out><![CDATA[15:18:32.171 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.gamegrid.auction.controller.AuctionControllerIntegrationTest]: AuctionControllerIntegrationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+15:18:32.488 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.gamegrid.auction.AuctionApplication for test class com.gamegrid.auction.controller.AuctionControllerIntegrationTest
 
   .   ____          _            __ _ _
  /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
@@ -80,25 +80,25 @@
  =========|_|==============|___/=/_/_/_/
  :: Spring Boot ::                (v3.2.5)
 
-2026-07-04T09:37:08.439+05:30  INFO 43972 --- [           main] c.g.a.c.AuctionControllerIntegrationTest : Starting AuctionControllerIntegrationTest using Java 17.0.7 with PID 43972 (started by kisho in C:\Users\kisho\.gemini\antigravity\scratch\gamegrid\backend)
-2026-07-04T09:37:08.444+05:30  INFO 43972 --- [           main] c.g.a.c.AuctionControllerIntegrationTest : The following 1 profile is active: "test"
-2026-07-04T09:37:11.654+05:30  INFO 43972 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2026-07-04T09:37:11.878+05:30  INFO 43972 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 193 ms. Found 5 JPA repository interfaces.
-2026-07-04T09:37:13.039+05:30  INFO 43972 --- [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
-2026-07-04T09:37:13.277+05:30  INFO 43972 --- [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.4.4.Final
-2026-07-04T09:37:13.432+05:30  INFO 43972 --- [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
-2026-07-04T09:37:14.448+05:30  INFO 43972 --- [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
-2026-07-04T09:37:14.541+05:30  INFO 43972 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
-2026-07-04T09:37:15.074+05:30  INFO 43972 --- [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:testdb user=SA
-2026-07-04T09:37:15.078+05:30  INFO 43972 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
-2026-07-04T09:37:15.149+05:30  WARN 43972 --- [           main] org.hibernate.dialect.Dialect            : HHH000511: The 2.2.0 version for [org.hibernate.dialect.MySQLDialect] is no longer supported, hence certain features may not work properly. The minimum supported version is 8.0.0. Check the community dialects project for available legacy versions.
-2026-07-04T09:37:15.160+05:30  WARN 43972 --- [           main] org.hibernate.orm.deprecation            : HHH90000025: MySQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
-2026-07-04T09:37:17.117+05:30  INFO 43972 --- [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-07-04T15:18:33.613+05:30  INFO 28160 --- [           main] c.g.a.c.AuctionControllerIntegrationTest : Starting AuctionControllerIntegrationTest using Java 17.0.7 with PID 28160 (started by kisho in C:\Users\kisho\.gemini\antigravity\scratch\gamegrid\backend)
+2026-07-04T15:18:33.616+05:30  INFO 28160 --- [           main] c.g.a.c.AuctionControllerIntegrationTest : The following 1 profile is active: "test"
+2026-07-04T15:18:36.499+05:30  INFO 28160 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-07-04T15:18:36.655+05:30  INFO 28160 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 136 ms. Found 5 JPA repository interfaces.
+2026-07-04T15:18:37.702+05:30  INFO 28160 --- [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-07-04T15:18:37.925+05:30  INFO 28160 --- [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.4.4.Final
+2026-07-04T15:18:38.058+05:30  INFO 28160 --- [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-07-04T15:18:38.683+05:30  INFO 28160 --- [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-07-04T15:18:38.755+05:30  INFO 28160 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-07-04T15:18:39.231+05:30  INFO 28160 --- [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:testdb user=SA
+2026-07-04T15:18:39.237+05:30  INFO 28160 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-07-04T15:18:39.318+05:30  WARN 28160 --- [           main] org.hibernate.dialect.Dialect            : HHH000511: The 2.2.0 version for [org.hibernate.dialect.MySQLDialect] is no longer supported, hence certain features may not work properly. The minimum supported version is 8.0.0. Check the community dialects project for available legacy versions.
+2026-07-04T15:18:39.329+05:30  WARN 28160 --- [           main] org.hibernate.orm.deprecation            : HHH90000025: MySQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-07-04T15:18:41.302+05:30  INFO 28160 --- [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
 Hibernate: 
     alter table auction_players 
        drop 
        foreign key FKfqkwnjqcdh127piqeo6ef5i11
-2026-07-04T09:37:17.161+05:30  WARN 43972 --- [           main] o.h.t.s.i.ExceptionHandlerLoggedImpl     : GenerationTarget encountered exception accepting command : Error executing DDL "
+2026-07-04T15:18:41.370+05:30  WARN 28160 --- [           main] o.h.t.s.i.ExceptionHandlerLoggedImpl     : GenerationTarget encountered exception accepting command : Error executing DDL "
     alter table auction_players 
        drop 
        foreign key FKfqkwnjqcdh127piqeo6ef5i11" via JDBC [Table "AUCTION_PLAYERS" not found;]
@@ -283,7 +283,7 @@ Hibernate:
     alter table auction_players 
        drop 
        foreign key FKnvdcrbb5kkxnsuhhxq3lyj6ag
-2026-07-04T09:37:17.192+05:30  WARN 43972 --- [           main] o.h.t.s.i.ExceptionHandlerLoggedImpl     : GenerationTarget encountered exception accepting command : Error executing DDL "
+2026-07-04T15:18:41.402+05:30  WARN 28160 --- [           main] o.h.t.s.i.ExceptionHandlerLoggedImpl     : GenerationTarget encountered exception accepting command : Error executing DDL "
     alter table auction_players 
        drop 
        foreign key FKnvdcrbb5kkxnsuhhxq3lyj6ag" via JDBC [Table "AUCTION_PLAYERS" not found;]
@@ -468,7 +468,7 @@ Hibernate:
     alter table auction_players 
        drop 
        foreign key FKc2jrgcdsujl1wv347kuspx85h
-2026-07-04T09:37:17.215+05:30  WARN 43972 --- [           main] o.h.t.s.i.ExceptionHandlerLoggedImpl     : GenerationTarget encountered exception accepting command : Error executing DDL "
+2026-07-04T15:18:41.423+05:30  WARN 28160 --- [           main] o.h.t.s.i.ExceptionHandlerLoggedImpl     : GenerationTarget encountered exception accepting command : Error executing DDL "
     alter table auction_players 
        drop 
        foreign key FKc2jrgcdsujl1wv347kuspx85h" via JDBC [Table "AUCTION_PLAYERS" not found;]
@@ -653,7 +653,7 @@ Hibernate:
     alter table auction_teams 
        drop 
        foreign key FK3jxt7iimjpuv4y1y22kyrv82p
-2026-07-04T09:37:17.238+05:30  WARN 43972 --- [           main] o.h.t.s.i.ExceptionHandlerLoggedImpl     : GenerationTarget encountered exception accepting command : Error executing DDL "
+2026-07-04T15:18:41.445+05:30  WARN 28160 --- [           main] o.h.t.s.i.ExceptionHandlerLoggedImpl     : GenerationTarget encountered exception accepting command : Error executing DDL "
     alter table auction_teams 
        drop 
        foreign key FK3jxt7iimjpuv4y1y22kyrv82p" via JDBC [Table "AUCTION_TEAMS" not found;]
@@ -838,7 +838,7 @@ Hibernate:
     alter table bids 
        drop 
        foreign key FKbm89m2gow82dotpnlcp7t3p5f
-2026-07-04T09:37:17.259+05:30  WARN 43972 --- [           main] o.h.t.s.i.ExceptionHandlerLoggedImpl     : GenerationTarget encountered exception accepting command : Error executing DDL "
+2026-07-04T15:18:41.485+05:30  WARN 28160 --- [           main] o.h.t.s.i.ExceptionHandlerLoggedImpl     : GenerationTarget encountered exception accepting command : Error executing DDL "
     alter table bids 
        drop 
        foreign key FKbm89m2gow82dotpnlcp7t3p5f" via JDBC [Table "BIDS" not found;]
@@ -1023,7 +1023,7 @@ Hibernate:
     alter table bids 
        drop 
        foreign key FKpoine0tlihidy5g457xaoatrl
-2026-07-04T09:37:17.278+05:30  WARN 43972 --- [           main] o.h.t.s.i.ExceptionHandlerLoggedImpl     : GenerationTarget encountered exception accepting command : Error executing DDL "
+2026-07-04T15:18:41.506+05:30  WARN 28160 --- [           main] o.h.t.s.i.ExceptionHandlerLoggedImpl     : GenerationTarget encountered exception accepting command : Error executing DDL "
     alter table bids 
        drop 
        foreign key FKpoine0tlihidy5g457xaoatrl" via JDBC [Table "BIDS" not found;]
@@ -1208,7 +1208,7 @@ Hibernate:
     alter table bids 
        drop 
        foreign key FKlugwwrotdwfrdv50w9xejoc41
-2026-07-04T09:37:17.297+05:30  WARN 43972 --- [           main] o.h.t.s.i.ExceptionHandlerLoggedImpl     : GenerationTarget encountered exception accepting command : Error executing DDL "
+2026-07-04T15:18:41.525+05:30  WARN 28160 --- [           main] o.h.t.s.i.ExceptionHandlerLoggedImpl     : GenerationTarget encountered exception accepting command : Error executing DDL "
     alter table bids 
        drop 
        foreign key FKlugwwrotdwfrdv50w9xejoc41" via JDBC [Table "BIDS" not found;]
@@ -1431,8 +1431,6 @@ Hibernate:
         bid_increment decimal(38,2) not null,
         is_deleted bit not null,
         maximum_bid decimal(38,2),
-        min_men integer not null,
-        min_women integer not null,
         minimum_bid decimal(38,2) not null,
         created_at datetime(6),
         id bigint not null auto_increment,
@@ -1442,6 +1440,7 @@ Hibernate:
         description varchar(255),
         event_name varchar(255) not null,
         events TEXT,
+        roster_rules TEXT,
         status VARCHAR(50) not null,
         primary key (id)
     ) engine=InnoDB
@@ -1462,6 +1461,7 @@ Hibernate:
         id bigint not null auto_increment,
         category varchar(255) not null,
         city varchar(255),
+        club varchar(255),
         email varchar(255),
         gender varchar(255),
         name varchar(255) not null,
@@ -1512,13 +1512,13 @@ Hibernate:
        add constraint FKlugwwrotdwfrdv50w9xejoc41 
        foreign key (team_id) 
        references auction_teams (id)
-2026-07-04T09:37:17.441+05:30  INFO 43972 --- [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
-2026-07-04T09:37:18.387+05:30  INFO 43972 --- [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
-2026-07-04T09:37:20.324+05:30  WARN 43972 --- [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
-2026-07-04T09:37:21.597+05:30  INFO 43972 --- [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
-2026-07-04T09:37:21.598+05:30  INFO 43972 --- [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
-2026-07-04T09:37:21.608+05:30  INFO 43972 --- [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 4 ms
-2026-07-04T09:37:21.683+05:30  INFO 43972 --- [           main] c.g.a.c.AuctionControllerIntegrationTest : Started AuctionControllerIntegrationTest in 13.993 seconds (process running for 24.019)
+2026-07-04T15:18:41.674+05:30  INFO 28160 --- [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-07-04T15:18:42.504+05:30  INFO 28160 --- [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-07-04T15:18:45.143+05:30  WARN 28160 --- [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-07-04T15:18:46.989+05:30  INFO 28160 --- [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-07-04T15:18:46.991+05:30  INFO 28160 --- [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-07-04T15:18:46.999+05:30  INFO 28160 --- [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 4 ms
+2026-07-04T15:18:47.096+05:30  INFO 28160 --- [           main] c.g.a.c.AuctionControllerIntegrationTest : Started AuctionControllerIntegrationTest in 14.201 seconds (process running for 34.21)
 Hibernate: 
     select
         count(*) 
@@ -1528,120 +1528,121 @@ Hibernate:
     insert 
     into
         players
-        (age, category, city, email, gender, name, phone_number, photo_path, skill_level, state) 
+        (age, category, city, club, email, gender, name, phone_number, photo_path, skill_level, state) 
     values
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 Hibernate: 
     insert 
     into
         players
-        (age, category, city, email, gender, name, phone_number, photo_path, skill_level, state) 
+        (age, category, city, club, email, gender, name, phone_number, photo_path, skill_level, state) 
     values
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 Hibernate: 
     insert 
     into
         players
-        (age, category, city, email, gender, name, phone_number, photo_path, skill_level, state) 
+        (age, category, city, club, email, gender, name, phone_number, photo_path, skill_level, state) 
     values
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 Hibernate: 
     insert 
     into
         players
-        (age, category, city, email, gender, name, phone_number, photo_path, skill_level, state) 
+        (age, category, city, club, email, gender, name, phone_number, photo_path, skill_level, state) 
     values
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 Hibernate: 
     insert 
     into
         players
-        (age, category, city, email, gender, name, phone_number, photo_path, skill_level, state) 
+        (age, category, city, club, email, gender, name, phone_number, photo_path, skill_level, state) 
     values
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 Hibernate: 
     insert 
     into
         players
-        (age, category, city, email, gender, name, phone_number, photo_path, skill_level, state) 
+        (age, category, city, club, email, gender, name, phone_number, photo_path, skill_level, state) 
     values
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 Hibernate: 
     insert 
     into
         players
-        (age, category, city, email, gender, name, phone_number, photo_path, skill_level, state) 
+        (age, category, city, club, email, gender, name, phone_number, photo_path, skill_level, state) 
     values
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 Hibernate: 
     insert 
     into
         players
-        (age, category, city, email, gender, name, phone_number, photo_path, skill_level, state) 
+        (age, category, city, club, email, gender, name, phone_number, photo_path, skill_level, state) 
     values
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 Hibernate: 
     insert 
     into
         players
-        (age, category, city, email, gender, name, phone_number, photo_path, skill_level, state) 
+        (age, category, city, club, email, gender, name, phone_number, photo_path, skill_level, state) 
     values
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 Hibernate: 
     insert 
     into
         players
-        (age, category, city, email, gender, name, phone_number, photo_path, skill_level, state) 
+        (age, category, city, club, email, gender, name, phone_number, photo_path, skill_level, state) 
     values
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 Hibernate: 
     insert 
     into
         players
-        (age, category, city, email, gender, name, phone_number, photo_path, skill_level, state) 
+        (age, category, city, club, email, gender, name, phone_number, photo_path, skill_level, state) 
     values
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 Hibernate: 
     insert 
     into
         players
-        (age, category, city, email, gender, name, phone_number, photo_path, skill_level, state) 
+        (age, category, city, club, email, gender, name, phone_number, photo_path, skill_level, state) 
     values
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 Hibernate: 
     insert 
     into
         players
-        (age, category, city, email, gender, name, phone_number, photo_path, skill_level, state) 
+        (age, category, city, club, email, gender, name, phone_number, photo_path, skill_level, state) 
     values
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 Hibernate: 
     insert 
     into
         players
-        (age, category, city, email, gender, name, phone_number, photo_path, skill_level, state) 
+        (age, category, city, club, email, gender, name, phone_number, photo_path, skill_level, state) 
     values
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 Hibernate: 
     insert 
     into
         players
-        (age, category, city, email, gender, name, phone_number, photo_path, skill_level, state) 
+        (age, category, city, club, email, gender, name, phone_number, photo_path, skill_level, state) 
     values
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 Hibernate: 
     insert 
     into
         players
-        (age, category, city, email, gender, name, phone_number, photo_path, skill_level, state) 
+        (age, category, city, club, email, gender, name, phone_number, photo_path, skill_level, state) 
     values
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 Hibernate: 
     select
         p1_0.id,
         p1_0.age,
         p1_0.category,
         p1_0.city,
+        p1_0.club,
         p1_0.created_at,
         p1_0.email,
         p1_0.gender,
@@ -1752,44 +1753,37 @@ Hibernate:
     insert 
     into
         players
-        (age, category, city, email, gender, name, phone_number, photo_path, skill_level, state) 
+        (age, category, city, club, email, gender, name, phone_number, photo_path, skill_level, state) 
     values
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 Hibernate: 
     insert 
     into
         players
-        (age, category, city, email, gender, name, phone_number, photo_path, skill_level, state) 
+        (age, category, city, club, email, gender, name, phone_number, photo_path, skill_level, state) 
     values
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 Hibernate: 
     insert 
     into
         players
-        (age, category, city, email, gender, name, phone_number, photo_path, skill_level, state) 
+        (age, category, city, club, email, gender, name, phone_number, photo_path, skill_level, state) 
     values
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 Hibernate: 
     insert 
     into
         players
-        (age, category, city, email, gender, name, phone_number, photo_path, skill_level, state) 
+        (age, category, city, club, email, gender, name, phone_number, photo_path, skill_level, state) 
     values
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-Hibernate: 
-    select
-        count(p1_0.id) 
-    from
-        players p1_0 
-    where
-        lower(p1_0.category)=?
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 Hibernate: 
     insert 
     into
         auctions
-        (auction_date, auction_name, bid_increment, category, description, event_name, events, is_deleted, maximum_bid, min_men, min_women, minimum_bid, status) 
+        (auction_date, auction_name, bid_increment, category, description, event_name, events, is_deleted, maximum_bid, minimum_bid, roster_rules, status) 
     values
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 Hibernate: 
     insert 
     into
@@ -1842,13 +1836,14 @@ Hibernate:
         t1_0.id=?
 ]]></system-out>
   </testcase>
-  <testcase name="createAuction_fails_whenNotEnoughPlayers" classname="com.gamegrid.auction.controller.AuctionControllerIntegrationTest" time="0.091">
+  <testcase name="startAuction_fails_whenNotEnoughPlayers" classname="com.gamegrid.auction.controller.AuctionControllerIntegrationTest" time="0.244">
     <system-out><![CDATA[Hibernate: 
     select
         p1_0.id,
         p1_0.age,
         p1_0.category,
         p1_0.city,
+        p1_0.club,
         p1_0.created_at,
         p1_0.email,
         p1_0.gender,
@@ -1887,37 +1882,280 @@ Hibernate:
     insert 
     into
         players
-        (age, category, city, email, gender, name, phone_number, photo_path, skill_level, state) 
+        (age, category, city, club, email, gender, name, phone_number, photo_path, skill_level, state) 
     values
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 Hibernate: 
     insert 
     into
         players
-        (age, category, city, email, gender, name, phone_number, photo_path, skill_level, state) 
+        (age, category, city, club, email, gender, name, phone_number, photo_path, skill_level, state) 
     values
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 Hibernate: 
     insert 
     into
         players
-        (age, category, city, email, gender, name, phone_number, photo_path, skill_level, state) 
+        (age, category, city, club, email, gender, name, phone_number, photo_path, skill_level, state) 
     values
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 Hibernate: 
     insert 
     into
         players
-        (age, category, city, email, gender, name, phone_number, photo_path, skill_level, state) 
+        (age, category, city, club, email, gender, name, phone_number, photo_path, skill_level, state) 
     values
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+Hibernate: 
+    insert 
+    into
+        auctions
+        (auction_date, auction_name, bid_increment, category, description, event_name, events, is_deleted, maximum_bid, minimum_bid, roster_rules, status) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+Hibernate: 
+    insert 
+    into
+        auction_teams
+        (auction_id, logo_path, maximum_players, minimum_players, purse_amount, remaining_purse, team_name) 
+    values
+        (?, ?, ?, ?, ?, ?, ?)
 Hibernate: 
     select
-        count(p1_0.id) 
+        ap1_0.id,
+        ap1_0.auction_id,
+        ap1_0.base_price,
+        ap1_0.created_at,
+        ap1_0.player_id,
+        ap1_0.sold_at,
+        ap1_0.sold_price,
+        ap1_0.status,
+        ap1_0.team_id 
+    from
+        auction_players ap1_0 
+    left join
+        auction_teams t1_0 
+            on t1_0.id=ap1_0.team_id 
+    where
+        t1_0.id=?
+Hibernate: 
+    insert 
+    into
+        auction_teams
+        (auction_id, logo_path, maximum_players, minimum_players, purse_amount, remaining_purse, team_name) 
+    values
+        (?, ?, ?, ?, ?, ?, ?)
+Hibernate: 
+    select
+        ap1_0.id,
+        ap1_0.auction_id,
+        ap1_0.base_price,
+        ap1_0.created_at,
+        ap1_0.player_id,
+        ap1_0.sold_at,
+        ap1_0.sold_price,
+        ap1_0.status,
+        ap1_0.team_id 
+    from
+        auction_players ap1_0 
+    left join
+        auction_teams t1_0 
+            on t1_0.id=ap1_0.team_id 
+    where
+        t1_0.id=?
+Hibernate: 
+    select
+        a1_0.id,
+        a1_0.auction_date,
+        a1_0.auction_name,
+        a1_0.bid_increment,
+        a1_0.category,
+        a1_0.created_at,
+        a1_0.description,
+        a1_0.event_name,
+        a1_0.events,
+        a1_0.is_deleted,
+        a1_0.maximum_bid,
+        a1_0.minimum_bid,
+        a1_0.roster_rules,
+        a1_0.status,
+        a1_0.updated_at 
+    from
+        auctions a1_0 
+    where
+        a1_0.id=? 
+        and a1_0.is_deleted=0
+Hibernate: 
+    select
+        p1_0.id,
+        p1_0.age,
+        p1_0.category,
+        p1_0.city,
+        p1_0.club,
+        p1_0.created_at,
+        p1_0.email,
+        p1_0.gender,
+        p1_0.name,
+        p1_0.phone_number,
+        p1_0.photo_path,
+        p1_0.skill_level,
+        p1_0.state 
     from
         players p1_0 
     where
         lower(p1_0.category)=?
+Hibernate: 
+    select
+        ap1_0.id,
+        ap1_0.auction_id,
+        ap1_0.base_price,
+        ap1_0.created_at,
+        ap1_0.player_id,
+        ap1_0.sold_at,
+        ap1_0.sold_price,
+        ap1_0.status,
+        ap1_0.team_id 
+    from
+        auction_players ap1_0 
+    left join
+        auctions a1_0 
+            on a1_0.id=ap1_0.auction_id 
+    left join
+        players p1_0 
+            on p1_0.id=ap1_0.player_id 
+    where
+        a1_0.id=? 
+        and p1_0.id=?
+Hibernate: 
+    insert 
+    into
+        auction_players
+        (auction_id, base_price, player_id, sold_at, sold_price, status, team_id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?)
+Hibernate: 
+    select
+        ap1_0.id,
+        ap1_0.auction_id,
+        ap1_0.base_price,
+        ap1_0.created_at,
+        ap1_0.player_id,
+        ap1_0.sold_at,
+        ap1_0.sold_price,
+        ap1_0.status,
+        ap1_0.team_id 
+    from
+        auction_players ap1_0 
+    left join
+        auctions a1_0 
+            on a1_0.id=ap1_0.auction_id 
+    left join
+        players p1_0 
+            on p1_0.id=ap1_0.player_id 
+    where
+        a1_0.id=? 
+        and p1_0.id=?
+Hibernate: 
+    insert 
+    into
+        auction_players
+        (auction_id, base_price, player_id, sold_at, sold_price, status, team_id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?)
+Hibernate: 
+    select
+        ap1_0.id,
+        ap1_0.auction_id,
+        ap1_0.base_price,
+        ap1_0.created_at,
+        ap1_0.player_id,
+        ap1_0.sold_at,
+        ap1_0.sold_price,
+        ap1_0.status,
+        ap1_0.team_id 
+    from
+        auction_players ap1_0 
+    left join
+        auctions a1_0 
+            on a1_0.id=ap1_0.auction_id 
+    left join
+        players p1_0 
+            on p1_0.id=ap1_0.player_id 
+    where
+        a1_0.id=? 
+        and p1_0.id=?
+Hibernate: 
+    insert 
+    into
+        auction_players
+        (auction_id, base_price, player_id, sold_at, sold_price, status, team_id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?)
+Hibernate: 
+    select
+        ap1_0.id,
+        ap1_0.auction_id,
+        ap1_0.base_price,
+        ap1_0.created_at,
+        ap1_0.player_id,
+        ap1_0.sold_at,
+        ap1_0.sold_price,
+        ap1_0.status,
+        ap1_0.team_id 
+    from
+        auction_players ap1_0 
+    left join
+        auctions a1_0 
+            on a1_0.id=ap1_0.auction_id 
+    left join
+        players p1_0 
+            on p1_0.id=ap1_0.player_id 
+    where
+        a1_0.id=? 
+        and p1_0.id=?
+Hibernate: 
+    insert 
+    into
+        auction_players
+        (auction_id, base_price, player_id, sold_at, sold_price, status, team_id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?)
+Hibernate: 
+    select
+        at1_0.id,
+        at1_0.auction_id,
+        at1_0.created_at,
+        at1_0.logo_path,
+        at1_0.maximum_players,
+        at1_0.minimum_players,
+        at1_0.purse_amount,
+        at1_0.remaining_purse,
+        at1_0.team_name 
+    from
+        auction_teams at1_0 
+    left join
+        auctions a1_0 
+            on a1_0.id=at1_0.auction_id 
+    where
+        a1_0.id=?
+Hibernate: 
+    select
+        ap1_0.id,
+        ap1_0.auction_id,
+        ap1_0.base_price,
+        ap1_0.created_at,
+        ap1_0.player_id,
+        ap1_0.sold_at,
+        ap1_0.sold_price,
+        ap1_0.status,
+        ap1_0.team_id 
+    from
+        auction_players ap1_0 
+    left join
+        auctions a1_0 
+            on a1_0.id=ap1_0.auction_id 
+    where
+        a1_0.id=?
 ]]></system-out>
   </testcase>
 </testsuite>

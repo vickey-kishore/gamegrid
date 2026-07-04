@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ThemeProvider, CssBaseline, AppBar, Toolbar, Typography, Button, Container, Box } from '@mui/material';
-import { Landmark, Users, PlaySquare, Compass } from 'lucide-react';
+import { Landmark, PlaySquare, Compass } from 'lucide-react';
 import theme from './theme';
 import AuctionsListView from './views/AuctionsListView';
 import ImportPlayersView from './views/ImportPlayersView';
@@ -67,13 +67,7 @@ export const App: React.FC = () => {
                 Auctions
               </Button>
               
-              <Button
-                color={currentView === 'import-players' ? 'primary' : 'inherit'}
-                startIcon={<Users size={18} />}
-                onClick={() => handleNavigate('import-players')}
-              >
-                Players Directory
-              </Button>
+
 
               {selectedAuctionId && (currentView === 'dashboard' || currentView === 'rosters') && (
                 <>

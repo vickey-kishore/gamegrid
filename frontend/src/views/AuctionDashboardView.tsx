@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import {
   Box, Card, CardContent, Typography, Button, TextField, Grid,
   Avatar, Chip, List, ListItem, ListItemButton, ListItemAvatar, ListItemText, Divider,
-  IconButton, CircularProgress, Alert, Paper, Tooltip, InputAdornment,
+  IconButton, CircularProgress, Alert, Paper, InputAdornment,
   FormControl, InputLabel, Select, MenuItem
 } from '@mui/material';
-import { ArrowLeft, User, Search, Play, CheckCircle, XCircle, SkipForward, Landmark, History } from 'lucide-react';
+import { ArrowLeft, User, Search, Play, CheckCircle, XCircle, SkipForward, History } from 'lucide-react';
 import { api, ASSET_BASE_URL } from '../api';
 
 interface TeamConfig {
@@ -32,6 +32,7 @@ interface AuctionPlayer {
   state: string | null;
   skillLevel: string | null;
   photoPath: string | null;
+  club: string | null;
   basePrice: number;
   status: 'Available' | 'Sold' | 'Unsold';
   soldPrice: number | null;
@@ -64,6 +65,7 @@ export const AuctionDashboardView: React.FC<AuctionDashboardViewProps> = ({
   // Bidding Log for Current Player
   const [bidLogs, setBidLogs] = useState<BidResponse[]>([]);
   const [customBidAmount, setCustomBidAmount] = useState<string>('');
+  const [selectedBiddingTeamId, setSelectedBiddingTeamId] = useState<string>('');
 
   // Search & Filters for Left Panel
   const [search, setSearch] = useState('');
@@ -180,7 +182,7 @@ export const AuctionDashboardView: React.FC<AuctionDashboardViewProps> = ({
     setErrorMsg(null);
 
     try {
-      await api.post(`/api/players/${currentAP.playerId}/sold`, {
+      await api.post(`/players/${currentAP.playerId}/sold`, {
         auctionId
       });
       setCurrentAP(null);
@@ -198,7 +200,7 @@ export const AuctionDashboardView: React.FC<AuctionDashboardViewProps> = ({
     setErrorMsg(null);
 
     try {
-      await api.post(`/api/players/${currentAP.playerId}/unsold`, {
+      await api.post(`/players/${currentAP.playerId}/unsold`, {
         auctionId
       });
       setCurrentAP(null);
@@ -214,10 +216,19 @@ export const AuctionDashboardView: React.FC<AuctionDashboardViewProps> = ({
     setCurrentAP(null);
   };
 
+  // Memoized roster categories from rules
+  const rosterCategories = React.useMemo(() => {
+    const list = new Set<string>();
+    auction?.rosterRules?.forEach((rule: any) => {
+      if (rule.category) list.add(rule.category.trim());
+    });
+    return Array.from(list);
+  }, [auction]);
+
   // Filters left panel list
   const filteredPlayers = players.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = eventFilter ? p.category.toLowerCase() === eventFilter.toLowerCase() : true;
+    const matchesCategory = eventFilter ? p.category?.trim().toLowerCase() === eventFilter.trim().toLowerCase() : true;
     const matchesStatus = p.status === statusFilter;
     return matchesSearch && matchesCategory && matchesStatus;
   });
@@ -233,7 +244,7 @@ export const AuctionDashboardView: React.FC<AuctionDashboardViewProps> = ({
   const highestBid = bidLogs.length > 0 ? bidLogs[0] : null;
 
   return (
-    <Box sx={{ py: 3, display: 'flex', flexDirection: 'column', gap: 3, height: '90vh' }}>
+    <Box sx={{ py: 3, display: 'flex', flexDirection: 'column', gap: 3, height: 'calc(100vh - 120px)' }}>
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', pb: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -265,8 +276,8 @@ export const AuctionDashboardView: React.FC<AuctionDashboardViewProps> = ({
         
         {/* LEFT PANEL: Player Queue */}
         <Grid size={{ xs: 12, md: 3 }} sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-          <Card sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', minHeight: '500px' }}>
-            <CardContent sx={{ p: 2.5, display: 'flex', flexDirection: 'column', gap: 2, height: '100%' }}>
+          <Card sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', minHeight: '500px', overflow: 'hidden' }}>
+            <CardContent sx={{ p: 2.5, display: 'flex', flexDirection: 'column', gap: 2, flexGrow: 1, minHeight: 0 }}>
               <Typography variant="h5" color="secondary">Bidding Pool</Typography>
               
               {/* Queue Status Chips */}
@@ -301,18 +312,18 @@ export const AuctionDashboardView: React.FC<AuctionDashboardViewProps> = ({
                 }}
               />
 
-              {auction?.events && auction.events.length > 0 && (
+              {rosterCategories.length > 0 && (
                 <FormControl size="small" fullWidth sx={{ mt: 0.5 }}>
-                  <InputLabel id="event-filter-label">Filter by Event Category</InputLabel>
+                  <InputLabel id="category-filter-label">Filter by Category</InputLabel>
                   <Select
-                    labelId="event-filter-label"
+                    labelId="category-filter-label"
                     value={eventFilter}
-                    label="Filter by Event Category"
+                    label="Filter by Category"
                     onChange={(e) => setEventFilter(e.target.value)}
                   >
-                    <MenuItem value="">All Events</MenuItem>
-                    {auction.events.map((ev: string) => (
-                      <MenuItem key={ev} value={ev}>{ev}</MenuItem>
+                    <MenuItem value="">All Categories</MenuItem>
+                    {rosterCategories.map((cat: string) => (
+                      <MenuItem key={cat} value={cat}>{cat}</MenuItem>
                     ))}
                   </Select>
                 </FormControl>
@@ -320,13 +331,13 @@ export const AuctionDashboardView: React.FC<AuctionDashboardViewProps> = ({
 
               <Divider />
 
-              <List sx={{ flexGrow: 1, overflowY: 'auto', maxHeight: '350px' }}>
+              <List sx={{ flexGrow: 1, overflowY: 'auto', minHeight: 0 }}>
                 {filteredPlayers.length === 0 ? (
                   <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 4 }}>
                     No players in queue.
                   </Typography>
                 ) : (
-                  filteredPlayers.map((ap) => (
+                  filteredPlayers.map((ap, index) => (
                     <ListItem
                       key={ap.id}
                       disablePadding
@@ -345,15 +356,15 @@ export const AuctionDashboardView: React.FC<AuctionDashboardViewProps> = ({
                         }}
                       >
                         <ListItemAvatar>
-                          <Avatar src={ap.photoPath ? `${ASSET_BASE_URL}/${ap.photoPath}` : undefined}>
+                          <Avatar src={ap.photoPath ? (ap.photoPath.startsWith('http') ? ap.photoPath : `${ASSET_BASE_URL}/${ap.photoPath}`) : undefined}>
                             <User size={18} />
                           </Avatar>
                         </ListItemAvatar>
                         <ListItemText
-                          primary={ap.name}
+                          primary={`${index + 1}. ${ap.name}`}
                           secondary={
                             <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
-                              {ap.category} • Skill: {ap.skillLevel || '—'}
+                              {ap.category} {ap.club ? `• ${ap.club}` : ''}
                             </Typography>
                           }
                         />
@@ -367,202 +378,167 @@ export const AuctionDashboardView: React.FC<AuctionDashboardViewProps> = ({
         </Grid>
 
         {/* CENTER PANEL: Current Player Card & Controls */}
-        <Grid size={{ xs: 12, md: 6 }} sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-          <Card sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', minHeight: '500px' }}>
-            <CardContent sx={{ p: 3, flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <Grid size={{ xs: 12, md: 9 }} sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <Card sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', minHeight: '500px', overflow: 'hidden' }}>
+            <CardContent sx={{ p: 4, flexGrow: 1, display: 'flex', flexDirection: 'column', minHeight: 0, justifyContent: 'center' }}>
               {currentAP ? (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, flexGrow: 1 }}>
-                  {/* Player Card details */}
-                  <Box sx={{ display: 'flex', gap: 3, alignItems: 'center' }}>
-                    <Avatar
-                      src={currentAP.photoPath ? `${ASSET_BASE_URL}/${currentAP.photoPath}` : undefined}
-                      sx={{ width: 90, height: 90, border: '2px solid #00f0ff' }}
-                    >
-                      <User size={45} />
-                    </Avatar>
-                    
-                    <Box sx={{ flexGrow: 1 }}>
-                      <Typography variant="h4" color="text.primary">{currentAP.name}</Typography>
-                      <Box sx={{ display: 'flex', gap: 1, mt: 0.5, flexWrap: 'wrap' }}>
-                        <Chip label={currentAP.category} size="small" color="secondary" />
-                        <Chip label={`Skill: ${currentAP.skillLevel || 'N/A'}`} size="small" variant="outlined" />
-                        <Chip label={`Gender: ${currentAP.gender || 'N/A'}`} size="small" variant="outlined" />
+                <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between', flexGrow: 1 }}>
+                  <Grid container spacing={4} sx={{ flexGrow: 1, alignItems: 'center', minHeight: 0 }}>
+                    {/* Left Column: Player Photo & Name */}
+                    <Grid size={{ xs: 12, md: 5 }} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', py: 2 }}>
+                      <Avatar
+                        src={currentAP.photoPath ? (currentAP.photoPath.startsWith('http') ? currentAP.photoPath : `${ASSET_BASE_URL}/${currentAP.photoPath}`) : undefined}
+                        sx={{ width: 220, height: 220, border: '4px solid #00f0ff', boxShadow: '0 0 25px rgba(0, 240, 255, 0.25)', mb: 2 }}
+                      >
+                        <User size={110} />
+                      </Avatar>
+                      
+                      <Typography variant="h3" sx={{ fontWeight: 'bold', letterSpacing: '0.5px' }} color="text.primary">
+                        {currentAP.name}
+                      </Typography>
+                      <Box sx={{ display: 'flex', gap: 1.5, mt: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
+                        <Chip label={currentAP.category} size="medium" color="secondary" sx={{ fontSize: '0.9rem', px: 1 }} />
+                        <Chip label={`Gender: ${currentAP.gender || 'N/A'}`} size="medium" variant="outlined" sx={{ fontSize: '0.9rem', px: 1 }} />
+                        {currentAP.club && (
+                          <Chip label={`Club: ${currentAP.club}`} size="medium" color="primary" variant="outlined" sx={{ fontSize: '0.9rem', px: 1 }} />
+                        )}
                       </Box>
-                    </Box>
 
-                    <Box sx={{ textAlign: 'right' }}>
-                      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>BASE PRICE</Typography>
-                      <Typography variant="h5" color="primary">${currentAP.basePrice}</Typography>
-                    </Box>
-                  </Box>
-
-                  <Divider />
-
-                  {/* Dynamic Bidding board */}
-                  <Grid container spacing={2}>
-                    <Grid size={{ xs: 6 }}>
-                      <Paper variant="outlined" sx={{ p: 2, textAlign: 'center', backgroundColor: 'rgba(0, 240, 255, 0.02)' }}>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>CURRENT HIGHEST BID</Typography>
-                        <Typography variant="h4" sx={{ color: 'primary.main', fontWeight: 'bold' }}>
-                          {highestBid ? `$${highestBid.bidAmount}` : 'No Bids'}
-                        </Typography>
-                      </Paper>
+                      <Box sx={{ mt: 2 }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', fontSize: '0.8rem', fontWeight: 600 }}>BASE PRICE</Typography>
+                        <Typography variant="h4" color="primary" sx={{ fontWeight: 'bold' }}>₹{currentAP.basePrice}</Typography>
+                      </Box>
                     </Grid>
-                    <Grid size={{ xs: 6 }}>
-                      <Paper variant="outlined" sx={{ p: 2, textAlign: 'center', backgroundColor: 'rgba(255, 0, 127, 0.02)' }}>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>CURRENT LEADER</Typography>
-                        <Typography variant="h4" sx={{ color: 'secondary.main', fontWeight: 'bold' }}>
-                          {highestBid ? highestBid.teamName : 'None'}
-                        </Typography>
-                      </Paper>
+
+                    {/* Right Column: Bid Details Input & Sold/Unsold/Skip Buttons */}
+                    <Grid size={{ xs: 12, md: 7 }} sx={{ display: 'flex', flexDirection: 'column', gap: 3, py: 2, borderLeft: { md: '1px solid rgba(255, 255, 255, 0.08)' }, pl: { md: 4 } }}>
+                      {currentAP.status === 'Available' ? (
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3.5 }}>
+                          
+                          {/* Bidding Controls Form */}
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '0.85rem' }}>
+                              ENTER BID DETAILS
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                              <TextField
+                                label="Bid Amount"
+                                type="number"
+                                size="medium"
+                                value={customBidAmount}
+                                onChange={(e) => setCustomBidAmount(e.target.value)}
+                                sx={{ width: '150px' }}
+                              />
+                              <FormControl size="medium" sx={{ flexGrow: 1 }}>
+                                <InputLabel id="custom-bid-team-select">Bidding Team</InputLabel>
+                                <Select
+                                  labelId="custom-bid-team-select"
+                                  label="Bidding Team"
+                                  value={selectedBiddingTeamId}
+                                  onChange={(e) => setSelectedBiddingTeamId(e.target.value as string)}
+                                >
+                                  <MenuItem value="" disabled>Select Team...</MenuItem>
+                                  {teams.map((t) => (
+                                    <MenuItem key={t.id} value={t.id} disabled={t.remainingPurse < Number(customBidAmount) || t.playersCount >= t.maximumPlayers}>
+                                      {t.teamName} (Bal: ₹{t.remainingPurse})
+                                    </MenuItem>
+                                  ))}
+                                </Select>
+                              </FormControl>
+                            </Box>
+                            <Button
+                              variant="contained"
+                              color="primary"
+                              size="large"
+                              disabled={actionLoading || !selectedBiddingTeamId || !customBidAmount}
+                              onClick={() => {
+                                handlePlaceBid(Number(selectedBiddingTeamId), Number(customBidAmount));
+                                setSelectedBiddingTeamId(''); // Reset selection after placement
+                              }}
+                              sx={{ py: 1.5, fontSize: '1.05rem', fontWeight: 'bold' }}
+                            >
+                              Place Bid
+                            </Button>
+                          </Box>
+
+                          <Divider />
+
+                          {/* Action Buttons */}
+                          <Box sx={{ display: 'flex', gap: 2 }}>
+                            <Button
+                              variant="contained"
+                              color="success"
+                              size="large"
+                              fullWidth
+                              disabled={actionLoading || !highestBid}
+                              startIcon={<CheckCircle size={20} />}
+                              onClick={handleMarkSold}
+                              sx={{ py: 1.5, fontWeight: 'bold' }}
+                            >
+                              Mark Sold
+                            </Button>
+                            <Button
+                              variant="contained"
+                              color="error"
+                              size="large"
+                              fullWidth
+                              disabled={actionLoading}
+                              startIcon={<XCircle size={20} />}
+                              onClick={handleMarkUnsold}
+                              sx={{ py: 1.5, fontWeight: 'bold' }}
+                            >
+                              Mark Unsold
+                            </Button>
+                            <Button
+                              variant="outlined"
+                              color="inherit"
+                              size="large"
+                              disabled={actionLoading}
+                              startIcon={<SkipForward size={20} />}
+                              onClick={handleSkipPlayer}
+                              sx={{ py: 1.5, fontWeight: 'bold' }}
+                            >
+                              Skip
+                            </Button>
+                          </Box>
+                        </Box>
+                      ) : (
+                        <Box sx={{ py: 4, textAlign: 'center' }}>
+                          <Alert severity={currentAP.status === 'Sold' ? 'success' : 'error'} sx={{ display: 'inline-flex', alignItems: 'center', mb: 2 }}>
+                            {currentAP.status === 'Sold' ? (
+                              <Typography variant="body1">
+                                Player sold to <strong>{currentAP.teamName}</strong> for <strong>₹{currentAP.soldPrice}</strong>
+                              </Typography>
+                            ) : (
+                              <Typography variant="body1">Player marked Unsold</Typography>
+                            )}
+                          </Alert>
+                          <Box>
+                            <Button variant="outlined" color="primary" onClick={handleSkipPlayer} sx={{ fontWeight: 'bold', mt: 2 }}>
+                              Select Another Player
+                            </Button>
+                          </Box>
+                        </Box>
+                      )}
+
+                      {/* Bid logs (Inside Right Column) */}
+                      {bidLogs.length > 0 && (
+                        <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', gap: 0.5, alignItems: 'center', fontWeight: 600 }}>
+                            <History size={14} /> RECENT BID LOGS
+                          </Typography>
+                          <Paper variant="outlined" sx={{ p: 1, maxHeight: 110, overflowY: 'auto', backgroundColor: 'rgba(0,0,0,0.2)' }}>
+                            {bidLogs.map((log) => (
+                              <Box key={log.id} sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5, borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>{log.teamName}</Typography>
+                                <Typography variant="body2" color="primary">₹{log.bidAmount}</Typography>
+                              </Box>
+                            ))}
+                          </Paper>
+                        </Box>
+                      )}
                     </Grid>
                   </Grid>
-
-                  {/* Actions / Bids Buttons */}
-                  {currentAP.status === 'Available' ? (
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-                      
-                      {/* Bid Placers list */}
-                      <Box>
-                        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>
-                          PLACE INCREMENTAL BID (+${auction.bidIncrement})
-                        </Typography>
-                        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 1.5 }}>
-                          {teams.map((t) => {
-                            const nextVal = highestBid ? highestBid.bidAmount + auction.bidIncrement : auction.minimumBid;
-                            const isPurseFull = t.remainingPurse < nextVal;
-                            const isSlotsFull = t.playersCount >= t.maximumPlayers;
-                            const isLeader = highestBid?.teamId === t.id;
-                            
-                            return (
-                              <Tooltip
-                                key={t.id}
-                                title={
-                                  isPurseFull ? 'Insufficient budget' :
-                                  isSlotsFull ? 'Roster size reached limit' :
-                                  isLeader ? 'Holding highest bid' : `Bid $${nextVal}`
-                                }
-                              >
-                                <span>
-                                  <Button
-                                    variant="outlined"
-                                    color="primary"
-                                    fullWidth
-                                    size="small"
-                                    disabled={actionLoading || isPurseFull || isSlotsFull || isLeader}
-                                    onClick={() => handlePlaceBid(t.id)}
-                                    sx={{ py: 1 }}
-                                  >
-                                    {t.teamName}
-                                  </Button>
-                                </span>
-                              </Tooltip>
-                            );
-                          })}
-                        </Box>
-                      </Box>
-
-                      {/* Custom Bid Trigger */}
-                      <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                        <TextField
-                          label="Custom Bid Amount"
-                          type="number"
-                          size="small"
-                          value={customBidAmount}
-                          onChange={(e) => setCustomBidAmount(e.target.value)}
-                          sx={{ width: '180px' }}
-                        />
-                        <FormControl size="small" sx={{ flexGrow: 1 }}>
-                          <InputLabel id="custom-bid-team-select">Team Bidding</InputLabel>
-                          <Select
-                            labelId="custom-bid-team-select"
-                            label="Team Bidding"
-                            defaultValue=""
-                            onChange={(e: any) => {
-                              if (e.target.value && customBidAmount) {
-                                handlePlaceBid(Number(e.target.value), Number(customBidAmount));
-                                e.target.value = ''; // Reset select
-                              }
-                            }}
-                          >
-                            <MenuItem value="" disabled>Select Team...</MenuItem>
-                            {teams.map((t) => (
-                              <MenuItem key={t.id} value={t.id} disabled={t.remainingPurse < Number(customBidAmount) || t.playersCount >= t.maximumPlayers}>
-                                {t.teamName} (Bal: ${t.remainingPurse})
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      </Box>
-
-                      <Divider sx={{ my: 1 }} />
-
-                      {/* Sold / Unsold actions */}
-                      <Box sx={{ display: 'flex', gap: 2 }}>
-                        <Button
-                          variant="contained"
-                          color="success"
-                          fullWidth
-                          disabled={actionLoading || !highestBid}
-                          startIcon={<CheckCircle size={18} />}
-                          onClick={handleMarkSold}
-                        >
-                          Mark Sold
-                        </Button>
-                        <Button
-                          variant="contained"
-                          color="error"
-                          fullWidth
-                          disabled={actionLoading}
-                          startIcon={<XCircle size={18} />}
-                          onClick={handleMarkUnsold}
-                        >
-                          Mark Unsold
-                        </Button>
-                        <Button
-                          variant="outlined"
-                          color="inherit"
-                          disabled={actionLoading}
-                          startIcon={<SkipForward size={18} />}
-                          onClick={handleSkipPlayer}
-                        >
-                          Skip
-                        </Button>
-                      </Box>
-                    </Box>
-                  ) : (
-                    <Box sx={{ textAlign: 'center', py: 3 }}>
-                      <Alert severity={currentAP.status === 'Sold' ? 'success' : 'error'} sx={{ display: 'inline-flex', alignItems: 'center' }}>
-                        {currentAP.status === 'Sold' ? (
-                          <Typography variant="body1">
-                            Player sold to <strong>{currentAP.teamName}</strong> for <strong>${currentAP.soldPrice}</strong>
-                          </Typography>
-                        ) : (
-                          <Typography variant="body1">Player marked Unsold</Typography>
-                        )}
-                      </Alert>
-                      <Button variant="outlined" color="primary" sx={{ mt: 3 }} onClick={handleSkipPlayer}>
-                        Select Another Player
-                      </Button>
-                    </Box>
-                  )}
-
-                  {/* Bid logs */}
-                  {bidLogs.length > 0 && (
-                    <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                      <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
-                        <History size={14} /> RECENT BID LOGS
-                      </Typography>
-                      <Paper variant="outlined" sx={{ p: 1, maxHeight: 150, overflowY: 'auto', backgroundColor: 'rgba(0,0,0,0.2)' }}>
-                        {bidLogs.map((log) => (
-                          <Box key={log.id} sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5, borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>{log.teamName}</Typography>
-                            <Typography variant="body2" color="primary">${log.bidAmount}</Typography>
-                          </Box>
-                        ))}
-                      </Paper>
-                    </Box>
-                  )}
                 </Box>
               ) : (
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexGrow: 1, gap: 2, textAlign: 'center', opacity: 0.7 }}>
@@ -575,75 +551,6 @@ export const AuctionDashboardView: React.FC<AuctionDashboardViewProps> = ({
                   </Box>
                 </Box>
               )}
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* RIGHT PANEL: Teams Roster Budgets */}
-        <Grid size={{ xs: 12, md: 3 }} sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-          <Card sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', minHeight: '500px' }}>
-            <CardContent sx={{ p: 2.5, display: 'flex', flexDirection: 'column', gap: 2, height: '100%' }}>
-              <Typography variant="h5" color="secondary">Teams Standings</Typography>
-              <Divider />
-
-              <List sx={{ flexGrow: 1, overflowY: 'auto', maxHeight: '420px' }}>
-                {teams.map((t) => {
-                  const spent = t.purseAmount - t.remainingPurse;
-                  const slotsLeft = t.maximumPlayers - t.playersCount;
-                  
-                  return (
-                    <Paper
-                      key={t.id}
-                      variant="outlined"
-                      sx={{
-                        p: 2,
-                        mb: 2,
-                        backgroundColor: 'rgba(255, 255, 255, 0.01)',
-                        border: '1px solid rgba(255, 255, 255, 0.05)'
-                      }}
-                    >
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.5 }}>
-                        <Avatar
-                          src={t.logoPath ? `${ASSET_BASE_URL}/${t.logoPath}` : undefined}
-                          sx={{ width: 35, height: 35, border: '1px solid rgba(255,255,255,0.1)' }}
-                        >
-                          <Landmark size={16} />
-                        </Avatar>
-                        <Typography variant="h6" color="text.primary" sx={{ fontWeight: 600 }}>
-                          {t.teamName}
-                        </Typography>
-                      </Box>
-
-                      <Grid container spacing={1}>
-                        <Grid size={{ xs: 6 }}>
-                          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>REMAINING PURSE</Typography>
-                          <Typography variant="body1" sx={{ color: 'success.main', fontWeight: 'bold' }}>
-                            ${t.remainingPurse}
-                          </Typography>
-                        </Grid>
-                        <Grid size={{ xs: 6 }}>
-                          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>TOTAL SPENT</Typography>
-                          <Typography variant="body1" sx={{ color: 'text.primary', fontWeight: 'bold' }}>
-                            ${spent}
-                          </Typography>
-                        </Grid>
-                        <Grid size={{ xs: 6 }} sx={{ mt: 1 }}>
-                          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>SLOTS FILLED</Typography>
-                          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                            {t.playersCount} / {t.maximumPlayers}
-                          </Typography>
-                        </Grid>
-                        <Grid size={{ xs: 6 }} sx={{ mt: 1 }}>
-                          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>SLOTS LEFT</Typography>
-                          <Typography variant="body2" sx={{ color: 'warning.main', fontWeight: 'bold' }}>
-                            {slotsLeft} slots
-                          </Typography>
-                        </Grid>
-                      </Grid>
-                    </Paper>
-                  );
-                })}
-              </List>
             </CardContent>
           </Card>
         </Grid>

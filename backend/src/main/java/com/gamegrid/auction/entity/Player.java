@@ -39,6 +39,8 @@ public class Player {
     @Column(name = "photo_path")
     private String photoPath;
 
+    private String club;
+
     @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;
 }

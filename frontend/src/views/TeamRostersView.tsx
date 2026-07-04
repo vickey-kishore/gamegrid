@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box, Card, CardContent, Typography, Button, TextField,
+  Box, Card, CardContent, Typography, Button,
   Avatar, CircularProgress, Alert, Table, TableBody,
-  TableCell, TableContainer, TableHead, TableRow,
-  FormControl, InputLabel, Select, MenuItem
+  TableCell, TableContainer, TableHead, TableRow, Chip
 } from '@mui/material';
-import { Landmark, User, FileSpreadsheet, Printer, Search } from 'lucide-react';
+import { Landmark, User, FileSpreadsheet, Printer } from 'lucide-react';
 import { api, ASSET_BASE_URL } from '../api';
 
 interface RosterPlayer {
@@ -14,6 +13,7 @@ interface RosterPlayer {
   photoPath: string | null;
   category: string;
   skillLevel: string | null;
+  club: string | null;
   soldPrice: number;
 }
 
@@ -30,20 +30,15 @@ interface TeamRoster {
 
 interface TeamRostersViewProps {
   auctionId: number;
-  onBackClick: () => void;
+  onBackClick?: () => void;
 }
 
 export const TeamRostersView: React.FC<TeamRostersViewProps> = ({
-  auctionId,
-  onBackClick
+  auctionId
 }) => {
   const [rosters, setRosters] = useState<TeamRoster[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Client-side search & category filtering
-  const [search, setSearch] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
   const [auction, setAuction] = useState<any>(null);
 
   useEffect(() => {
@@ -99,15 +94,6 @@ export const TeamRostersView: React.FC<TeamRostersViewProps> = ({
     window.print();
   };
 
-  // Filter roster players client-side
-  const getFilteredPlayers = (players: RosterPlayer[]) => {
-    return players.filter(p => {
-      const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
-      const matchesCategory = categoryFilter ? p.category.toLowerCase() === categoryFilter.toLowerCase() : true;
-      return matchesSearch && matchesCategory;
-    });
-  };
-
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
@@ -128,9 +114,6 @@ export const TeamRostersView: React.FC<TeamRostersViewProps> = ({
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button onClick={onBackClick} variant="outlined" color="inherit">
-            Back
-          </Button>
           <Button onClick={handlePrint} variant="contained" color="secondary" startIcon={<Printer size={18} />}>
             Print / PDF
           </Button>
@@ -141,52 +124,20 @@ export const TeamRostersView: React.FC<TeamRostersViewProps> = ({
         <Alert severity="error" className="no-print">{error}</Alert>
       )}
 
-      {/* Filter bar (Hidden during Print) */}
-      <Box className="no-print" sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-        <TextField
-          placeholder="Search players across all rosters..."
-          size="small"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          sx={{ flexGrow: 1 }}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <Search size={16} style={{ marginRight: 8, color: '#94a3b8' }} />
-              )
-            }
-          }}
-        />
-        {auction?.events && auction.events.length > 0 ? (
-          <FormControl size="small" sx={{ width: '220px' }}>
-            <InputLabel id="roster-category-filter-label">Filter by Event Category</InputLabel>
-            <Select
-              labelId="roster-category-filter-label"
-              value={categoryFilter}
-              label="Filter by Event Category"
-              onChange={(e) => setCategoryFilter(e.target.value)}
-            >
-              <MenuItem value="">All Events</MenuItem>
-              {auction.events.map((ev: string) => (
-                <MenuItem key={ev} value={ev}>{ev}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        ) : (
-          <TextField
-            placeholder="Filter by category (e.g. Cricket)"
-            size="small"
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            sx={{ width: '220px' }}
-          />
-        )}
-      </Box>
-
       {/* Roster Cards (Screen Display) */}
       <Box className="no-print" sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         {rosters.map((roster) => {
-          const filtered = getFilteredPlayers(roster.players);
+          const filtered = roster.players;
+          
+          // Calculate counts for each rule dynamically
+          const ruleMetadata = auction?.rosterRules?.map((rule: any) => {
+            const count = roster.players.filter(p => p.category?.trim().toLowerCase() === rule.category?.trim().toLowerCase()).length;
+            return {
+              category: rule.category,
+              current: count,
+              needed: rule.minCount
+            };
+          }) || [];
           
           return (
             <Card key={roster.teamId} sx={{ overflow: 'hidden' }}>
@@ -206,9 +157,21 @@ export const TeamRostersView: React.FC<TeamRostersViewProps> = ({
                   </Avatar>
                   <Box>
                     <Typography variant="h5" sx={{ color: 'text.primary', fontWeight: 'bold' }}>{roster.teamName}</Typography>
-                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                      Players Purchased: {roster.totalPlayersPurchased}
-                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap', mt: 0.5 }}>
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                        Players Purchased: {roster.totalPlayersPurchased}
+                      </Typography>
+                      {ruleMetadata.map((meta: any, i: number) => (
+                        <Chip
+                          key={i}
+                          size="small"
+                          label={`${meta.category}: ${meta.current}/${meta.needed}`}
+                          color={meta.current >= meta.needed ? 'success' : 'warning'}
+                          variant="outlined"
+                          sx={{ fontSize: '0.7rem', height: 18 }}
+                        />
+                      ))}
+                    </Box>
                   </Box>
                 </Box>
 
@@ -216,15 +179,15 @@ export const TeamRostersView: React.FC<TeamRostersViewProps> = ({
                 <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                   <Box>
                     <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>TOTAL BUDGET</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 'bold' }}>${roster.purseAmount}</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 'bold' }}>₹{roster.purseAmount}</Typography>
                   </Box>
                   <Box>
                     <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>TOTAL SPENT</Typography>
-                    <Typography variant="body1" sx={{ color: 'secondary.main', fontWeight: 'bold' }}>${roster.totalSpent}</Typography>
+                    <Typography variant="body1" sx={{ color: 'secondary.main', fontWeight: 'bold' }}>₹{roster.totalSpent}</Typography>
                   </Box>
                   <Box>
                     <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>REMAINING PURSE</Typography>
-                    <Typography variant="body1" sx={{ color: 'success.main', fontWeight: 'bold' }}>${roster.remainingPurse}</Typography>
+                    <Typography variant="body1" sx={{ color: 'success.main', fontWeight: 'bold' }}>₹{roster.remainingPurse}</Typography>
                   </Box>
                   <Button
                     variant="outlined"
@@ -248,27 +211,29 @@ export const TeamRostersView: React.FC<TeamRostersViewProps> = ({
                     <Table size="small">
                       <TableHead>
                         <TableRow>
-                          <TableCell sx={{ pl: 3 }}>Player Name</TableCell>
+                          <TableCell sx={{ pl: 3, width: '60px' }}>S.No</TableCell>
+                          <TableCell>Player Name</TableCell>
                           <TableCell>Category</TableCell>
-                          <TableCell>Skill Level</TableCell>
+                          <TableCell>Club</TableCell>
                           <TableCell align="right" sx={{ pr: 3 }}>Sold Price</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {filtered.map((player) => (
+                        {filtered.map((player, idx) => (
                           <TableRow key={player.playerId} hover>
-                            <TableCell sx={{ pl: 3, py: 1.5 }}>
+                            <TableCell sx={{ pl: 3 }}>{idx + 1}</TableCell>
+                            <TableCell sx={{ py: 1.5 }}>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                <Avatar src={player.photoPath ? `${ASSET_BASE_URL}/${player.photoPath}` : undefined} sx={{ width: 30, height: 30 }}>
+                                <Avatar src={player.photoPath ? (player.photoPath.startsWith('http') ? player.photoPath : `${ASSET_BASE_URL}/${player.photoPath}`) : undefined} sx={{ width: 30, height: 30 }}>
                                   <User size={14} />
                                 </Avatar>
                                 <Typography variant="body2" sx={{ fontWeight: 600 }}>{player.name}</Typography>
                               </Box>
                             </TableCell>
                             <TableCell>{player.category}</TableCell>
-                            <TableCell>{player.skillLevel || '—'}</TableCell>
+                            <TableCell>{player.club || '—'}</TableCell>
                             <TableCell align="right" sx={{ pr: 3, color: 'primary.main', fontWeight: 'bold' }}>
-                              ${player.soldPrice}
+                              ₹{player.soldPrice}
                             </TableCell>
                           </TableRow>
                         ))}
@@ -284,8 +249,8 @@ export const TeamRostersView: React.FC<TeamRostersViewProps> = ({
 
       {/* PRINT-ONLY SECTION (Styled cleanly for print output / PDF generator) */}
       <Box className="print-only" sx={{ display: 'none' }}>
-        <Typography variant="h4" align="center" gutterBottom sx={{ mb: 4, fontWeight: 'bold' }}>
-          GameGrid Tournament Auction - Roster Summary
+        <Typography className="print-main-title" variant="h4" align="center" gutterBottom sx={{ mb: 4, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1.5px' }}>
+          {auction?.auctionName || 'Auction'} - Roster Summary
         </Typography>
 
         {rosters.map((roster) => (
@@ -294,29 +259,43 @@ export const TeamRostersView: React.FC<TeamRostersViewProps> = ({
               {roster.teamName}
             </Typography>
             
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-              <Typography variant="body2">Total Budget: <strong>${roster.purseAmount}</strong></Typography>
-              <Typography variant="body2">Spent: <strong>${roster.totalSpent}</strong></Typography>
-              <Typography variant="body2">Remaining Purse: <strong>${roster.remainingPurse}</strong></Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+              <Typography variant="body2">Total Budget: <strong>₹{roster.purseAmount}</strong></Typography>
+              <Typography variant="body2">Spent: <strong>₹{roster.totalSpent}</strong></Typography>
+              <Typography variant="body2">Remaining Purse: <strong>₹{roster.remainingPurse}</strong></Typography>
               <Typography variant="body2">Players: <strong>{roster.totalPlayersPurchased}</strong></Typography>
             </Box>
+
+            {(() => {
+              const ruleMetadata = auction?.rosterRules?.map((rule: any) => {
+                const count = roster.players.filter(p => p.category?.trim().toLowerCase() === rule.category?.trim().toLowerCase()).length;
+                return `${rule.category}: ${count}/${rule.minCount}`;
+              }) || [];
+              return ruleMetadata.length > 0 ? (
+                <Typography variant="body2" sx={{ mb: 2, color: '#334155' }}>
+                  Roster Quotas: {ruleMetadata.join('  |  ')}
+                </Typography>
+              ) : null;
+            })()}
 
             <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid #000', textAlign: 'left' }}>
+                  <th style={{ padding: '6px', width: '40px' }}>S.No</th>
                   <th style={{ padding: '6px' }}>Player Name</th>
                   <th style={{ padding: '6px' }}>Category</th>
-                  <th style={{ padding: '6px' }}>Skill Level</th>
+                  <th style={{ padding: '6px' }}>Club</th>
                   <th style={{ padding: '6px', textAlign: 'right' }}>Sold Price</th>
                 </tr>
               </thead>
               <tbody>
-                {roster.players.map((player) => (
+                {roster.players.map((player, idx) => (
                   <tr key={player.playerId} style={{ borderBottom: '1px solid #ddd' }}>
+                    <td style={{ padding: '6px' }}>{idx + 1}</td>
                     <td style={{ padding: '6px' }}>{player.name}</td>
                     <td style={{ padding: '6px' }}>{player.category}</td>
-                    <td style={{ padding: '6px' }}>{player.skillLevel || 'N/A'}</td>
-                    <td style={{ padding: '6px', textAlign: 'right' }}>${player.soldPrice}</td>
+                    <td style={{ padding: '6px' }}>{player.club || '—'}</td>
+                    <td style={{ padding: '6px', textAlign: 'right' }}>₹{player.soldPrice}</td>
                   </tr>
                 ))}
               </tbody>
@@ -328,22 +307,81 @@ export const TeamRostersView: React.FC<TeamRostersViewProps> = ({
       {/* Global CSS injection for printing */}
       <style>{`
         @media print {
-          body {
-            background-color: #ffffff !important;
-            color: #000000 !important;
+          @page {
+            size: auto;
+            margin: 0mm;
+          }
+          html, body {
+            background-color: #0b0f19 !important;
+            color: #ffffff !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          /* Print Watermark */
+          body::after {
+            content: "game grid";
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 8rem;
+            color: rgba(255, 255, 255, 0.03) !important;
+            z-index: -1000;
+            pointer-events: none;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 900;
+            letter-spacing: 5px;
+            text-transform: uppercase;
           }
           .no-print {
             display: none !important;
           }
           .print-only {
             display: block !important;
+            background-color: #0b0f19 !important;
+            color: #ffffff !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+            padding: 2.5cm !important;
+            min-height: 100vh;
+            box-sizing: border-box;
+          }
+          .print-only * {
+            color: #ffffff !important;
+          }
+          .print-main-title {
+            color: #00f0ff !important;
+            font-weight: 800 !important;
           }
           table {
-            color: #000000 !important;
+            color: #ffffff !important;
+            background-color: rgba(255, 255, 255, 0.02) !important;
+            border-radius: 8px !important;
+            overflow: hidden !important;
+            width: 100%;
+            border-collapse: collapse !important;
           }
-          tr, td, th {
-            color: #000000 !important;
-            border-color: #000000 !important;
+          tr {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+          }
+          td {
+            color: #ffffff !important;
+            padding: 8px !important;
+          }
+          th {
+            background-color: #1e293b !important;
+            color: #ffffff !important;
+            font-weight: bold !important;
+            text-transform: uppercase !important;
+            font-size: 0.85rem !important;
+            padding: 8px !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
           }
         }
       `}</style>

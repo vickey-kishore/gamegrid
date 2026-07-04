@@ -30,15 +30,13 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
 
   // Form states
   const [auctionName, setAuctionName] = useState('');
-  const [eventName, setEventName] = useState('');
   const [events, setEvents] = useState<string[]>(['']);
   const [auctionDate, setAuctionDate] = useState('');
   const [description, setDescription] = useState('');
   const [minimumBid, setMinimumBid] = useState<number>(1000);
   const [bidIncrement, setBidIncrement] = useState<number>(500);
   const [maximumBid, setMaximumBid] = useState<number | ''>('');
-  const [minMen, setMinMen] = useState<number>(4);
-  const [minWomen, setMinWomen] = useState<number>(2);
+  const [rosterRules, setRosterRules] = useState<{ category: string; minCount: number }[]>([]);
 
   const [teams, setTeams] = useState<TeamConfig[]>([
     { teamName: 'Team A', logoPath: null, purseAmount: 100000, minimumPlayers: 8, maximumPlayers: 12 },
@@ -62,15 +60,13 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
       const response = await api.get(`/auctions/${auctionId}`);
       const data = response.data;
       setAuctionName(data.auctionName);
-      setEventName(data.eventName || '');
       setEvents(data.events && data.events.length > 0 ? data.events : ['']);
       setAuctionDate(data.auctionDate || '');
       setDescription(data.description || '');
       setMinimumBid(data.minimumBid);
       setBidIncrement(data.bidIncrement);
       setMaximumBid(data.maximumBid || '');
-      setMinMen(data.minMen || 4);
-      setMinWomen(data.minWomen || 2);
+      setRosterRules(data.rosterRules || []);
       setTeams(data.teams);
     } catch (err: any) {
       console.error(err);
@@ -141,6 +137,22 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
     setEvents(newEvents);
   };
 
+  const handleAddRosterRule = () => {
+    setRosterRules([...rosterRules, { category: '', minCount: 1 }]);
+  };
+
+  const handleRemoveRosterRule = (index: number) => {
+    const newRules = [...rosterRules];
+    newRules.splice(index, 1);
+    setRosterRules(newRules);
+  };
+
+  const handleRosterRuleChange = (index: number, field: 'category' | 'minCount', value: any) => {
+    const newRules = [...rosterRules];
+    newRules[index] = { ...newRules[index], [field]: value };
+    setRosterRules(newRules);
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -164,11 +176,10 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
 
     const payload = {
       auctionName,
-      eventName: eventName || 'Multiple Events',
+      eventName: auctionName,
       category: validEvents[0],
       events: validEvents,
-      minMen,
-      minWomen,
+      rosterRules: rosterRules.filter(r => r.category.trim() !== ''),
       auctionDate: auctionDate || null,
       description: description || null,
       minimumBid,
@@ -241,16 +252,7 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
                   value={auctionName}
                   onChange={(e) => setAuctionName(e.target.value)}
                 />
-                
-                <TextField
-                  label="Event Name"
-                  required
-                  fullWidth
-                  variant="outlined"
-                  value={eventName}
-                  onChange={(e) => setEventName(e.target.value)}
-                  placeholder="e.g. Badminton Cup 2026"
-                />
+
 
                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, my: 1 }}>
                   <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>Auction Events (Categories)</Typography>
@@ -343,25 +345,46 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
                   onChange={(e) => setMaximumBid(e.target.value === '' ? '' : Number(e.target.value))}
                 />
 
-                <TextField
-                  label="Min Men per Team"
-                  type="number"
-                  required
-                  fullWidth
-                  variant="outlined"
-                  value={minMen}
-                  onChange={(e) => setMinMen(Number(e.target.value))}
-                />
-
-                <TextField
-                  label="Min Women per Team"
-                  type="number"
-                  required
-                  fullWidth
-                  variant="outlined"
-                  value={minWomen}
-                  onChange={(e) => setMinWomen(Number(e.target.value))}
-                />
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, my: 1 }}>
+                  <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>Roster Category Minimums</Typography>
+                  {rosterRules.map((rule, idx) => (
+                    <Box key={idx} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                      <TextField
+                        label="Category"
+                        required
+                        variant="outlined"
+                        value={rule.category}
+                        onChange={(e) => handleRosterRuleChange(idx, 'category', e.target.value)}
+                        placeholder="e.g. Men, Women, 45+, U-19 Boys"
+                        size="small"
+                        sx={{ flexGrow: 2 }}
+                      />
+                      <TextField
+                        label="Min Count"
+                        type="number"
+                        required
+                        variant="outlined"
+                        value={rule.minCount}
+                        onChange={(e) => handleRosterRuleChange(idx, 'minCount', Number(e.target.value))}
+                        size="small"
+                        sx={{ width: '100px' }}
+                      />
+                      <IconButton color="error" size="small" onClick={() => handleRemoveRosterRule(idx)}>
+                        <Trash2 size={16} />
+                      </IconButton>
+                    </Box>
+                  ))}
+                  <Button
+                    variant="outlined"
+                    color="secondary"
+                    size="small"
+                    startIcon={<Plus size={14} />}
+                    onClick={handleAddRosterRule}
+                    sx={{ alignSelf: 'flex-start' }}
+                  >
+                    Add Constraint
+                  </Button>
+                </Box>
               </CardContent>
             </Card>
           </Grid>

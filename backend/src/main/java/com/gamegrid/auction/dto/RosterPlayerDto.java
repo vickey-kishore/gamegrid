@@ -13,5 +13,6 @@ public class RosterPlayerDto {
     private String photoPath;
     private String category;
     private String skillLevel;
+    private String club;
     private BigDecimal soldPrice;
 }

@@ -74,8 +74,18 @@ public class TeamService {
                         .photoPath(ap.getPlayer().getPhotoPath())
                         .category(ap.getPlayer().getCategory())
                         .skillLevel(ap.getPlayer().getSkillLevel())
+                        .club(ap.getPlayer().getClub())
                         .soldPrice(ap.getSoldPrice())
                         .build())
+                .sorted((a, b) -> {
+                    String catA = a.getCategory() != null ? a.getCategory().trim().toLowerCase() : "";
+                    String catB = b.getCategory() != null ? b.getCategory().trim().toLowerCase() : "";
+                    int cmp = catA.compareTo(catB);
+                    if (cmp != 0) return cmp;
+                    String nameA = a.getName() != null ? a.getName().trim().toLowerCase() : "";
+                    String nameB = b.getName() != null ? b.getName().trim().toLowerCase() : "";
+                    return nameA.compareTo(nameB);
+                })
                 .collect(Collectors.toList());
 
         BigDecimal totalSpent = team.getPurseAmount().subtract(team.getRemainingPurse());
@@ -94,6 +104,9 @@ public class TeamService {
 
     public byte[] exportRosterToExcel(Long teamId) throws IOException {
         TeamRosterDto roster = getTeamRoster(teamId);
+        AuctionTeam team = auctionTeamRepository.findById(teamId)
+                .orElseThrow(() -> new EntityNotFoundException("Team not found with ID: " + teamId));
+        String auctionName = team.getAuction().getAuctionName();
 
         try (Workbook workbook = new XSSFWorkbook();
              ByteArrayOutputStream out = new ByteArrayOutputStream()) {
@@ -118,25 +131,25 @@ public class TeamService {
             // Title Row
             Row titleRow = sheet.createRow(0);
             Cell titleCell = titleRow.createCell(0);
-            titleCell.setCellValue("GameGrid Tournament Auction - " + roster.getTeamName() + " Roster");
+            titleCell.setCellValue(auctionName + " - " + roster.getTeamName() + " Roster");
             titleCell.setCellStyle(titleStyle);
 
             // Metadata Info
             Row metaRow1 = sheet.createRow(2);
-            metaRow1.createCell(0).setCellValue("Total Budget:");
+            metaRow1.createCell(0).setCellValue("Total Budget (₹):");
             metaRow1.createCell(1).setCellValue(roster.getPurseAmount().doubleValue());
-            metaRow1.createCell(3).setCellValue("Remaining Purse:");
+            metaRow1.createCell(3).setCellValue("Remaining Purse (₹):");
             metaRow1.createCell(4).setCellValue(roster.getRemainingPurse().doubleValue());
 
             Row metaRow2 = sheet.createRow(3);
-            metaRow2.createCell(0).setCellValue("Total Spent:");
+            metaRow2.createCell(0).setCellValue("Total Spent (₹):");
             metaRow2.createCell(1).setCellValue(roster.getTotalSpent().doubleValue());
             metaRow2.createCell(3).setCellValue("Players Purchased:");
             metaRow2.createCell(4).setCellValue(roster.getTotalPlayersPurchased());
 
             // Header row
             Row headerRow = sheet.createRow(5);
-            String[] headers = {"S.No", "Player ID", "Player Name", "Category", "Skill Level", "Sold Price"};
+            String[] headers = {"S.No", "Player ID", "Player Name", "Category", "Club", "Sold Price (₹)"};
             for (int i = 0; i < headers.length; i++) {
                 Cell cell = headerRow.createCell(i);
                 cell.setCellValue(headers[i]);
@@ -152,7 +165,7 @@ public class TeamService {
                 row.createCell(1).setCellValue(player.getPlayerId());
                 row.createCell(2).setCellValue(player.getName());
                 row.createCell(3).setCellValue(player.getCategory());
-                row.createCell(4).setCellValue(player.getSkillLevel() != null ? player.getSkillLevel() : "N/A");
+                row.createCell(4).setCellValue(player.getClub() != null ? player.getClub() : "—");
                 row.createCell(5).setCellValue(player.getSoldPrice().doubleValue());
             }
 

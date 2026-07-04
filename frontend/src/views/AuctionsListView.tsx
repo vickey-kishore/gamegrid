@@ -6,7 +6,8 @@ import {
   DialogActions, Select, MenuItem, FormControl, InputLabel, CircularProgress,
   Tooltip
 } from '@mui/material';
-import { Search, Plus, Trash2, Edit2, Play, Eye, Calendar, Award } from 'lucide-react';
+import { Search, Plus, Trash2, Edit2, Play, Eye, Calendar, Award, Upload, Users } from 'lucide-react';
+import { ManagePlayersDialog } from './ManagePlayersDialog';
 import { api } from '../api';
 
 interface Auction {
@@ -19,6 +20,7 @@ interface Auction {
   bidIncrement: number;
   maximumBid: number | null;
   status: 'Draft' | 'Active' | 'Completed' | 'Cancelled';
+  rosterRules?: { category: string; minCount: number }[];
 }
 
 interface AuctionsListViewProps {
@@ -44,6 +46,55 @@ export const AuctionsListView: React.FC<AuctionsListViewProps> = ({
   // Dialog State
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedAuctionId, setSelectedAuctionId] = useState<number | null>(null);
+
+  // Excel Uploader State
+  const [uploadingAuctionId, setUploadingAuctionId] = useState<number | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Player Registry Dialog State
+  const [playersManageOpen, setPlayersManageOpen] = useState(false);
+  const [playersManageAuction, setPlayersManageAuction] = useState<Auction | null>(null);
+
+  const handleManagePlayersClick = (auction: Auction) => {
+    setPlayersManageAuction(auction);
+    setPlayersManageOpen(true);
+  };
+
+  const handleUploadPlayersClick = (auctionId: number) => {
+    setUploadingAuctionId(auctionId);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0] && uploadingAuctionId !== null) {
+      const file = e.target.files[0];
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('auctionId', uploadingAuctionId.toString());
+
+      try {
+        setLoading(true);
+        const res = await api.post('/players/import', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        const data = res.data;
+        if (data.errors && data.errors.length > 0) {
+          alert(`Import completed with errors:\n${data.errors.join('\n')}`);
+        } else {
+          alert(`Successfully imported ${data.successfullyImported} players and registered them to this auction!`);
+        }
+      } catch (err: any) {
+        console.error(err);
+        alert(err.response?.data?.message || 'Failed to upload players spreadsheet.');
+      } finally {
+        setLoading(false);
+        setUploadingAuctionId(null);
+      }
+    }
+  };
 
   useEffect(() => {
     fetchAuctions();
@@ -229,8 +280,28 @@ export const AuctionsListView: React.FC<AuctionsListViewProps> = ({
                         </IconButton>
                       </Tooltip>
 
+                      <Tooltip title="View Registered Players">
+                        <IconButton
+                          color="info"
+                          size="small"
+                          onClick={() => handleManagePlayersClick(auction)}
+                        >
+                          <Users size={18} />
+                        </IconButton>
+                      </Tooltip>
+
                       {auction.status === 'Draft' ? (
                         <>
+                          <Tooltip title="Upload Players Excel">
+                            <IconButton
+                              color="warning"
+                              size="small"
+                              onClick={() => handleUploadPlayersClick(auction.id)}
+                            >
+                              <Upload size={18} />
+                            </IconButton>
+                          </Tooltip>
+
                           <Tooltip title="Edit Auction Settings">
                             <IconButton
                               color="info"
@@ -302,6 +373,28 @@ export const AuctionsListView: React.FC<AuctionsListViewProps> = ({
           </Button>
         </DialogActions>
       </Dialog>
+
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        style={{ display: 'none' }}
+        accept=".xlsx,.xls"
+      />
+
+      {playersManageOpen && playersManageAuction && (
+        <ManagePlayersDialog
+          open={playersManageOpen}
+          onClose={() => {
+            setPlayersManageOpen(false);
+            setPlayersManageAuction(null);
+          }}
+          auctionId={playersManageAuction.id}
+          auctionName={playersManageAuction.auctionName}
+          rosterRules={playersManageAuction.rosterRules || []}
+          status={playersManageAuction.status}
+        />
+      )}
     </Box>
   );
 };

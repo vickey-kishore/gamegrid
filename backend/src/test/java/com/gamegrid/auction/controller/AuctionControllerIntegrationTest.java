@@ -82,7 +82,7 @@ public class AuctionControllerIntegrationTest {
     }
 
     @Test
-    void createAuction_fails_whenNotEnoughPlayers() throws Exception {
+    void startAuction_fails_whenNotEnoughPlayers() throws Exception {
         TeamConfig team1 = TeamConfig.builder()
                 .teamName("Warriors")
                 .purseAmount(BigDecimal.valueOf(10000))
@@ -107,9 +107,15 @@ public class AuctionControllerIntegrationTest {
                 .teams(List.of(team1, team2))
                 .build();
 
-        mockMvc.perform(post("/api/auctions")
+        String responseContent = mockMvc.perform(post("/api/auctions")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        Long createdAuctionId = objectMapper.readTree(responseContent).get("id").asLong();
+
+        mockMvc.perform(post("/api/auctions/" + createdAuctionId + "/start"))
                 .andExpect(status().isBadRequest());
     }
 }

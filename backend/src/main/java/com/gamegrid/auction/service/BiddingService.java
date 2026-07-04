@@ -155,36 +155,57 @@ public class BiddingService {
             throw new IllegalStateException("Purchase amount (" + purchaseAmount + ") exceeds team's remaining purse (" + team.getRemainingPurse() + ").");
         }
 
-        // 3. Gender / Roster math check
-        String playerGender = player.getGender();
-        boolean isMale = playerGender != null && playerGender.equalsIgnoreCase("Men");
-        boolean isFemale = playerGender != null && playerGender.equalsIgnoreCase("Women");
+        // 3. Dynamic Roster Rules Math check
+        List<RosterRule> rules = auction.getRosterRules();
+        if (rules == null || rules.isEmpty()) {
+            return; // No custom rules configured
+        }
 
-        long currentMen = boughtPlayers.stream().filter(p -> p.getPlayer().getGender() != null && p.getPlayer().getGender().equalsIgnoreCase("Men")).count();
-        long currentWomen = boughtPlayers.stream().filter(p -> p.getPlayer().getGender() != null && p.getPlayer().getGender().equalsIgnoreCase("Women")).count();
+        long totalNeeded = 0;
 
-        long nextMen = currentMen + (isMale ? 1 : 0);
-        long nextWomen = currentWomen + (isFemale ? 1 : 0);
+        for (RosterRule rule : rules) {
+            String targetCat = rule.getCategory();
+            if (targetCat == null || targetCat.isBlank() || rule.getMinCount() <= 0) {
+                continue;
+            }
 
-        int minMen = auction.getMinMen();
-        int minWomen = auction.getMinWomen();
+            // Count existing players matching this rule's category
+            long currentCount = boughtPlayers.stream()
+                .filter(ap -> matchesCategory(ap.getPlayer(), targetCat))
+                .count();
+
+            // Count prospective match (if the player being bought matches the target category)
+            boolean prospectiveMatch = matchesCategory(player, targetCat);
+            long nextCount = currentCount + (prospectiveMatch ? 1 : 0);
+
+            long needed = Math.max(0, rule.getMinCount() - nextCount);
+            totalNeeded += needed;
+        }
+
         int maxPlayers = team.getMaximumPlayers();
         int nextTotal = boughtPlayers.size() + 1;
-
-        long menNeeded = Math.max(0, minMen - nextMen);
-        long womenNeeded = Math.max(0, minWomen - nextWomen);
         int slotsLeft = maxPlayers - nextTotal;
 
-        if (menNeeded + womenNeeded > slotsLeft) {
-            throw new IllegalStateException("Bidding on this player would leave " + slotsLeft + " slots, which is insufficient to purchase the remaining required " + menNeeded + " Men and " + womenNeeded + " Women.");
+        if (totalNeeded > slotsLeft) {
+            throw new IllegalStateException("Bidding on this player would leave " + slotsLeft + " slots, which is insufficient to purchase the remaining required " + totalNeeded + " players across configured categories.");
         }
 
         BigDecimal nextRemainingPurse = team.getRemainingPurse().subtract(purchaseAmount);
-        BigDecimal requiredBudget = BigDecimal.valueOf(menNeeded + womenNeeded).multiply(auction.getMinimumBid());
+        BigDecimal requiredBudget = BigDecimal.valueOf(totalNeeded).multiply(auction.getMinimumBid());
 
         if (nextRemainingPurse.compareTo(requiredBudget) < 0) {
             throw new IllegalStateException("Bidding this amount leaves a remaining budget of " + nextRemainingPurse + ", which is insufficient to purchase the remaining required players at the base price of " + auction.getMinimumBid() + " (Requires: " + requiredBudget + ").");
         }
+    }
+
+    private boolean matchesCategory(Player player, String targetCategory) {
+        if (player.getCategory() != null && player.getCategory().equalsIgnoreCase(targetCategory.trim())) {
+            return true;
+        }
+        if (player.getGender() != null && player.getGender().equalsIgnoreCase(targetCategory.trim())) {
+            return true;
+        }
+        return false;
     }
 
     @Transactional

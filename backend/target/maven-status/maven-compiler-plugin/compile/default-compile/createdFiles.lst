@@ -1,4 +1,5 @@
 com\gamegrid\auction\service\BiddingService.class
+com\gamegrid\auction\dto\PlayerRequest$PlayerRequestBuilder.class
 com\gamegrid\auction\entity\Bid.class
 com\gamegrid\auction\config\WebConfig.class
 com\gamegrid\auction\dto\AuctionRequest.class
@@ -23,9 +24,11 @@ com\gamegrid\auction\dto\AuctionResponse.class
 com\gamegrid\auction\dto\UnsoldRequest$UnsoldRequestBuilder.class
 com\gamegrid\auction\dto\AuctionPlayerResponse.class
 com\gamegrid\auction\controller\PlayerController.class
+com\gamegrid\auction\entity\RosterRule$RosterRuleBuilder.class
 com\gamegrid\auction\entity\AuctionTeam.class
 com\gamegrid\auction\config\SeedDataConfig.class
 com\gamegrid\auction\service\PlayerService.class
+com\gamegrid\auction\entity\RosterRulesConverter$1.class
 com\gamegrid\auction\dto\PlayerImportResult$PlayerImportResultBuilder.class
 com\gamegrid\auction\dto\TeamRosterDto.class
 com\gamegrid\auction\entity\AuctionPlayer$AuctionPlayerBuilder.class
@@ -37,15 +40,19 @@ com\gamegrid\auction\dto\AuctionRequest$AuctionRequestBuilder.class
 com\gamegrid\auction\controller\BidController.class
 com\gamegrid\auction\dto\TeamConfig.class
 com\gamegrid\auction\dto\SoldRequest.class
+com\gamegrid\auction\config\FlywayConfig.class
 com\gamegrid\auction\dto\BidResponse$BidResponseBuilder.class
 com\gamegrid\auction\service\AuctionService.class
 com\gamegrid\auction\dto\BidRequest$BidRequestBuilder.class
 com\gamegrid\auction\dto\RosterPlayerDto$RosterPlayerDtoBuilder.class
 com\gamegrid\auction\dto\TeamRosterDto$TeamRosterDtoBuilder.class
+com\gamegrid\auction\dto\PlayerRequest.class
 com\gamegrid\auction\repository\AuctionPlayerRepository.class
+com\gamegrid\auction\entity\RosterRule.class
 com\gamegrid\auction\dto\BidResponse.class
 com\gamegrid\auction\entity\AuctionTeam$AuctionTeamBuilder.class
 com\gamegrid\auction\controller\FileController.class
+com\gamegrid\auction\entity\RosterRulesConverter.class
 com\gamegrid\auction\dto\TeamConfig$TeamConfigBuilder.class
 com\gamegrid\auction\controller\AuctionController.class
 com\gamegrid\auction\entity\Auction.class
