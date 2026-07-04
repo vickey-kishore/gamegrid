@@ -1,0 +1,3 @@
+ALTER TABLE auctions MODIFY event_name VARCHAR(255) NULL;
+ALTER TABLE auctions MODIFY category VARCHAR(50) NULL;
+ALTER TABLE auctions ADD COLUMN events TEXT;

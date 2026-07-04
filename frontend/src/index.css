@@ -1,0 +1,40 @@
+/* Reset Vite default centering rules */
+body {
+  margin: 0;
+  padding: 0;
+  display: block !important;
+  min-height: 100vh;
+  background-color: #0b0f19;
+  font-family: "Outfit", sans-serif;
+  color: #f1f5f9;
+}
+
+/* Custom premium scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0b0f19;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #00f0ff;
+}
+
+/* Animation utilities */
+@keyframes glowPulse {
+  0% { box-shadow: 0 0 5px rgba(0, 240, 255, 0.2); }
+  50% { box-shadow: 0 0 15px rgba(0, 240, 255, 0.5); }
+  100% { box-shadow: 0 0 5px rgba(0, 240, 255, 0.2); }
+}
+
+.pulse-glow {
+  animation: glowPulse 2s infinite ease-in-out;
+}
