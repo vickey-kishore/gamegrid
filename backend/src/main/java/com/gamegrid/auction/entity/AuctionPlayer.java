@@ -42,6 +42,10 @@ public class AuctionPlayer {
     @Column(name = "sold_at")
     private LocalDateTime soldAt;
 
+    @Builder.Default
+    @Column(name = "is_retained", nullable = false)
+    private boolean isRetained = false;
+
     @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;
 }

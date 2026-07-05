@@ -52,6 +52,13 @@ public class Auction {
     @Builder.Default
     private java.util.List<RosterRule> rosterRules = new java.util.ArrayList<>();
 
+    @Column(name = "allow_retention", nullable = false)
+    @Builder.Default
+    private boolean allowRetention = false;
+
+    @Column(name = "max_retained_players")
+    private Integer maxRetainedPlayers = 0;
+
     @Builder.Default
     @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted = false;

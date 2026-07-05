@@ -76,6 +76,7 @@ public class TeamService {
                         .skillLevel(ap.getPlayer().getSkillLevel())
                         .club(ap.getPlayer().getClub())
                         .soldPrice(ap.getSoldPrice())
+                        .isRetained(ap.isRetained())
                         .build())
                 .sorted((a, b) -> {
                     String catA = a.getCategory() != null ? a.getCategory().trim().toLowerCase() : "";

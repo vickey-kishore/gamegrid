@@ -29,4 +29,5 @@ public class AuctionPlayerResponse {
     private Long teamId;
     private String teamName;
     private LocalDateTime soldAt;
+    private boolean isRetained;
 }

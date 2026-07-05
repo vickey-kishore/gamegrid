@@ -253,9 +253,6 @@ export const AuctionDashboardView: React.FC<AuctionDashboardViewProps> = ({
           </IconButton>
           <Box>
             <Typography variant="h3" color="primary">{auction?.auctionName} Dashboard</Typography>
-            <Typography variant="body2" color="text.secondary">
-              {auction?.eventName} • Category: {auction?.category}
-            </Typography>
           </Box>
         </Box>
         <Chip

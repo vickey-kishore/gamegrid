@@ -1,0 +1,3 @@
+ALTER TABLE auctions ADD COLUMN allow_retention BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE auctions ADD COLUMN max_retained_players INT DEFAULT 0;
+ALTER TABLE auction_players ADD COLUMN is_retained BOOLEAN NOT NULL DEFAULT FALSE;

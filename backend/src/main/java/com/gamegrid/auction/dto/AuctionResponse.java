@@ -19,6 +19,8 @@ public class AuctionResponse {
     private String category;
     private List<String> events;
     private List<RosterRule> rosterRules;
+    private boolean allowRetention;
+    private Integer maxRetainedPlayers;
     private LocalDate auctionDate;
     private String description;
     private BigDecimal minimumBid;
