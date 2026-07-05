@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box, Card, CardContent, Typography, Button, TextField, Divider,
-  IconButton, Alert, CircularProgress, Grid, Paper
+  IconButton, Alert, CircularProgress, Grid, Paper, FormControlLabel, Switch
 } from '@mui/material';
 import { ArrowLeft, Save, Plus, Trash2, Upload, AlertCircle } from 'lucide-react';
 import { api, ASSET_BASE_URL } from '../api';
@@ -36,7 +36,9 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
   const [minimumBid, setMinimumBid] = useState<number>(1000);
   const [bidIncrement, setBidIncrement] = useState<number>(500);
   const [maximumBid, setMaximumBid] = useState<number | ''>('');
-  const [rosterRules, setRosterRules] = useState<{ category: string; minCount: number }[]>([]);
+  const [rosterRules, setRosterRules] = useState<{ category: string; minCount: number; maxRetentionLimit: number }[]>([]);
+  const [allowRetention, setAllowRetention] = useState(false);
+  const [maxRetainedPlayers, setMaxRetainedPlayers] = useState<number>(0);
 
   const [teams, setTeams] = useState<TeamConfig[]>([
     { teamName: 'Team A', logoPath: null, purseAmount: 100000, minimumPlayers: 8, maximumPlayers: 12 },
@@ -67,6 +69,8 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
       setBidIncrement(data.bidIncrement);
       setMaximumBid(data.maximumBid || '');
       setRosterRules(data.rosterRules || []);
+      setAllowRetention(data.allowRetention || false);
+      setMaxRetainedPlayers(data.maxRetainedPlayers || 0);
       setTeams(data.teams);
     } catch (err: any) {
       console.error(err);
@@ -138,7 +142,7 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
   };
 
   const handleAddRosterRule = () => {
-    setRosterRules([...rosterRules, { category: '', minCount: 1 }]);
+    setRosterRules([...rosterRules, { category: '', minCount: 1, maxRetentionLimit: 0 }]);
   };
 
   const handleRemoveRosterRule = (index: number) => {
@@ -147,7 +151,7 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
     setRosterRules(newRules);
   };
 
-  const handleRosterRuleChange = (index: number, field: 'category' | 'minCount', value: any) => {
+  const handleRosterRuleChange = (index: number, field: 'category' | 'minCount' | 'maxRetentionLimit', value: any) => {
     const newRules = [...rosterRules];
     newRules[index] = { ...newRules[index], [field]: value };
     setRosterRules(newRules);
@@ -180,6 +184,8 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
       category: validEvents[0],
       events: validEvents,
       rosterRules: rosterRules.filter(r => r.category.trim() !== ''),
+      allowRetention,
+      maxRetainedPlayers: allowRetention ? maxRetainedPlayers : 0,
       auctionDate: auctionDate || null,
       description: description || null,
       minimumBid,
@@ -336,7 +342,7 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
                   onChange={(e) => setBidIncrement(Number(e.target.value))}
                 />
 
-                <TextField
+                 <TextField
                   label="Maximum Bid (Optional)"
                   type="number"
                   fullWidth
@@ -345,8 +351,34 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
                   onChange={(e) => setMaximumBid(e.target.value === '' ? '' : Number(e.target.value))}
                 />
 
+                <Divider sx={{ my: 1.5 }} />
+
+                <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600, mb: -0.5 }}>Player Retention</Typography>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={allowRetention}
+                      onChange={(e) => setAllowRetention(e.target.checked)}
+                      color="primary"
+                    />
+                  }
+                  label="Allow Teams to Retain Players"
+                />
+
+                {allowRetention && (
+                  <TextField
+                    label="Maximum Retained Players per Team"
+                    type="number"
+                    fullWidth
+                    variant="outlined"
+                    value={maxRetainedPlayers}
+                    onChange={(e) => setMaxRetainedPlayers(Number(e.target.value))}
+                    helperText="Total limit of retained players each team can have"
+                  />
+                )}
+
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, my: 1 }}>
-                  <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>Roster Category Minimums</Typography>
+                  <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>Roster Category Constraints</Typography>
                   {rosterRules.map((rule, idx) => (
                     <Box key={idx} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                       <TextField
@@ -367,8 +399,19 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
                         value={rule.minCount}
                         onChange={(e) => handleRosterRuleChange(idx, 'minCount', Number(e.target.value))}
                         size="small"
-                        sx={{ width: '100px' }}
+                        sx={{ width: '90px' }}
                       />
+                      {allowRetention && (
+                        <TextField
+                          label="Max Retain"
+                          type="number"
+                          variant="outlined"
+                          value={rule.maxRetentionLimit || 0}
+                          onChange={(e) => handleRosterRuleChange(idx, 'maxRetentionLimit', Number(e.target.value))}
+                          size="small"
+                          sx={{ width: '100px' }}
+                        />
+                      )}
                       <IconButton color="error" size="small" onClick={() => handleRemoveRosterRule(idx)}>
                         <Trash2 size={16} />
                       </IconButton>

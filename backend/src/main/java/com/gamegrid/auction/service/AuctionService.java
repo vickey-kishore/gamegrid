@@ -44,6 +44,8 @@ public class AuctionService {
                 .category(request.getCategory())
                 .events(request.getEvents() == null ? null : String.join(",", request.getEvents()))
                 .rosterRules(request.getRosterRules() == null ? new java.util.ArrayList<>() : request.getRosterRules())
+                .allowRetention(request.isAllowRetention())
+                .maxRetainedPlayers(request.getMaxRetainedPlayers() == null ? 0 : request.getMaxRetainedPlayers())
                 .auctionDate(request.getAuctionDate())
                 .description(request.getDescription())
                 .minimumBid(request.getMinimumBid())
@@ -94,6 +96,8 @@ public class AuctionService {
         auction.setCategory(request.getCategory());
         auction.setEvents(request.getEvents() == null ? null : String.join(",", request.getEvents()));
         auction.setRosterRules(request.getRosterRules() == null ? new java.util.ArrayList<>() : request.getRosterRules());
+        auction.setAllowRetention(request.isAllowRetention());
+        auction.setMaxRetainedPlayers(request.getMaxRetainedPlayers() == null ? 0 : request.getMaxRetainedPlayers());
         auction.setAuctionDate(request.getAuctionDate());
         auction.setDescription(request.getDescription());
         auction.setMinimumBid(request.getMinimumBid());
@@ -307,6 +311,8 @@ public class AuctionService {
                 .category(auction.getCategory())
                 .events(eventList)
                 .rosterRules(auction.getRosterRules())
+                .allowRetention(auction.isAllowRetention())
+                .maxRetainedPlayers(auction.getMaxRetainedPlayers())
                 .auctionDate(auction.getAuctionDate())
                 .description(auction.getDescription())
                 .minimumBid(auction.getMinimumBid())
@@ -364,6 +370,7 @@ public class AuctionService {
                     .teamId(team != null ? team.getId() : null)
                     .teamName(team != null ? team.getTeamName() : null)
                     .soldAt(ap.getSoldAt())
+                    .isRetained(ap.isRetained())
                     .build();
         }).collect(Collectors.toList());
     }

@@ -5,7 +5,7 @@ import {
   Paper, IconButton, TextField, Box, Typography, MenuItem, Select,
   FormControl, InputLabel, CircularProgress, Tooltip, Grid, InputAdornment
 } from '@mui/material';
-import { Edit2, Trash2, Search, UserPlus, X, RefreshCw, User } from 'lucide-react';
+import { Edit2, Trash2, Search, UserPlus, X, RefreshCw, User, Lock, Unlock, Award } from 'lucide-react';
 import { api, ASSET_BASE_URL } from '../api';
 
 interface ManagePlayersDialogProps {
@@ -33,6 +33,9 @@ interface AuctionPlayerResponse {
   status: string;
   photoPath: string | null;
   club: string | null;
+  isRetained?: boolean;
+  teamName?: string | null;
+  soldPrice?: number | null;
 }
 
 export const ManagePlayersDialog: React.FC<ManagePlayersDialogProps> = ({
@@ -60,6 +63,14 @@ export const ManagePlayersDialog: React.FC<ManagePlayersDialogProps> = ({
   const [gender, setGender] = useState('');
   const [club, setClub] = useState('');
 
+  // Retention States
+  const [teams, setTeams] = useState<any[]>([]);
+  const [auction, setAuction] = useState<any>(null);
+  const [retainDialogOpen, setRetainDialogOpen] = useState(false);
+  const [retainingPlayer, setRetainingPlayer] = useState<AuctionPlayerResponse | null>(null);
+  const [selectedTeamId, setSelectedTeamId] = useState<number | ''>('');
+  const [retentionPrice, setRetentionPrice] = useState<number | ''>('');
+
   // Extract unique category options from rules
   const uniqueCategories = React.useMemo(() => {
     const list = new Set<string>();
@@ -72,6 +83,8 @@ export const ManagePlayersDialog: React.FC<ManagePlayersDialogProps> = ({
   useEffect(() => {
     if (open && auctionId) {
       fetchAuctionPlayers();
+      fetchAuctionTeams();
+      fetchAuctionDetails();
     }
   }, [open, auctionId]);
 
@@ -85,6 +98,69 @@ export const ManagePlayersDialog: React.FC<ManagePlayersDialogProps> = ({
       alert('Failed to load registered players.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAuctionTeams = async () => {
+    try {
+      const res = await api.get(`/auctions/${auctionId}/teams`);
+      setTeams(res.data);
+    } catch (err) {
+      console.error('Failed to load teams', err);
+    }
+  };
+
+  const fetchAuctionDetails = async () => {
+    try {
+      const res = await api.get(`/auctions/${auctionId}`);
+      setAuction(res.data);
+    } catch (err) {
+      console.error('Failed to load auction details', err);
+    }
+  };
+
+  const handleOpenRetainDialog = (ap: AuctionPlayerResponse) => {
+    setRetainingPlayer(ap);
+    setSelectedTeamId('');
+    setRetentionPrice(auction?.minimumBid || 1000);
+    setRetainDialogOpen(true);
+  };
+
+  const handleRetainSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!retainingPlayer || !selectedTeamId || !retentionPrice) {
+       alert('Please select a team and enter a retention price.');
+       return;
+    }
+
+    try {
+      await api.post(`/players/${retainingPlayer.playerId}/auction/${auctionId}/retain`, null, {
+        params: {
+          teamId: selectedTeamId,
+          retentionPrice: Number(retentionPrice)
+        }
+      });
+      alert(`Player ${retainingPlayer.name} retained successfully!`);
+      setRetainDialogOpen(false);
+      fetchAuctionPlayers();
+    } catch (err: any) {
+      console.error(err);
+      alert(err.response?.data?.message || 'Failed to retain player.');
+    }
+  };
+
+  const handleReleaseRetainedPlayer = async (ap: AuctionPlayerResponse) => {
+    if (!window.confirm(`Are you sure you want to release ${ap.name} from retention?`)) {
+      return;
+    }
+
+    try {
+      await api.post(`/players/${ap.playerId}/auction/${auctionId}/release-retained`);
+      alert(`Player ${ap.name} released successfully!`);
+      fetchAuctionPlayers();
+    } catch (err: any) {
+      console.error(err);
+      alert(err.response?.data?.message || 'Failed to release retained player.');
     }
   };
 
@@ -271,7 +347,14 @@ export const ManagePlayersDialog: React.FC<ManagePlayersDialogProps> = ({
                         <Avatar src={ap.photoPath ? (ap.photoPath.startsWith('http') ? ap.photoPath : `${ASSET_BASE_URL}/${ap.photoPath}`) : undefined} sx={{ width: 30, height: 30 }}>
                           <User size={14} />
                         </Avatar>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{ap.name}</Typography>
+                        <Box>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>{ap.name}</Typography>
+                          {ap.isRetained && (
+                            <Typography variant="caption" sx={{ color: 'secondary.main', display: 'block', fontWeight: 600, fontSize: '0.75rem' }}>
+                              Retained by {ap.teamName} (₹{ap.soldPrice})
+                            </Typography>
+                          )}
+                        </Box>
                       </Box>
                     </TableCell>
                     <TableCell>{ap.category}</TableCell>
@@ -281,6 +364,31 @@ export const ManagePlayersDialog: React.FC<ManagePlayersDialogProps> = ({
                     {status === 'Draft' && (
                       <TableCell align="center">
                         <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                          {auction?.allowRetention && (
+                            ap.isRetained ? (
+                              <Tooltip title="Release / Undo Retention">
+                                <IconButton
+                                  color="warning"
+                                  size="small"
+                                  onClick={() => handleReleaseRetainedPlayer(ap)}
+                                >
+                                  <Unlock size={16} />
+                                </IconButton>
+                              </Tooltip>
+                            ) : (
+                              ap.status === 'Available' && (
+                                <Tooltip title="Retain Player">
+                                  <IconButton
+                                    color="secondary"
+                                    size="small"
+                                    onClick={() => handleOpenRetainDialog(ap)}
+                                  >
+                                    <Award size={16} />
+                                  </IconButton>
+                                </Tooltip>
+                              )
+                            )
+                          )}
                           <Tooltip title="Edit Profile">
                             <IconButton
                               color="info"
@@ -391,6 +499,57 @@ export const ManagePlayersDialog: React.FC<ManagePlayersDialogProps> = ({
             </Button>
             <Button type="submit" variant="contained" color="primary">
               Save Entry
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
+
+      {/* Retain Player Confirmation Dialog */}
+      <Dialog open={retainDialogOpen} onClose={() => setRetainDialogOpen(false)} maxWidth="xs" fullWidth>
+        <form onSubmit={handleRetainSubmit}>
+          <DialogTitle sx={{ fontFamily: '"Rajdhani", sans-serif', fontWeight: 'bold' }}>
+            Retain Player: {retainingPlayer?.name}
+          </DialogTitle>
+          <DialogContent>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mt: 1.5 }}>
+              <Typography variant="body2" color="text.secondary">
+                Select the team that will retain this player. The retention price will be deducted from the team's total budget.
+              </Typography>
+              
+              <FormControl fullWidth required>
+                <InputLabel id="retain-team-select-label">Select Retaining Team</InputLabel>
+                <Select
+                  labelId="retain-team-select-label"
+                  label="Select Retaining Team"
+                  value={selectedTeamId}
+                  onChange={(e) => setSelectedTeamId(e.target.value as number)}
+                >
+                  <MenuItem value="" disabled>Select Team...</MenuItem>
+                  {teams.map(t => (
+                    <MenuItem key={t.id} value={t.id} disabled={t.remainingPurse < Number(retentionPrice)}>
+                      {t.teamName} (Purse Bal: ₹{t.remainingPurse})
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <TextField
+                label="Retention Price (₹)"
+                type="number"
+                fullWidth
+                required
+                value={retentionPrice}
+                onChange={(e) => setRetentionPrice(Number(e.target.value))}
+                helperText="This amount is fixed and will be adjusted with team's budget"
+              />
+            </Box>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 3 }}>
+            <Button onClick={() => setRetainDialogOpen(false)} color="inherit">
+              Cancel
+            </Button>
+            <Button type="submit" variant="contained" color="secondary" startIcon={<Lock size={16} />}>
+              Confirm Retention
             </Button>
           </DialogActions>
         </form>

@@ -93,4 +93,24 @@ public class PlayerController {
         playerService.removePlayerFromAuction(auctionId, id);
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/{playerId}/auction/{auctionId}/retain")
+    @Operation(summary = "Retain a player for a team")
+    public ResponseEntity<Void> retainPlayer(
+            @PathVariable("playerId") Long playerId,
+            @PathVariable("auctionId") Long auctionId,
+            @RequestParam("teamId") Long teamId,
+            @RequestParam("retentionPrice") java.math.BigDecimal retentionPrice) {
+        playerService.retainPlayer(auctionId, playerId, teamId, retentionPrice);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{playerId}/auction/{auctionId}/release-retained")
+    @Operation(summary = "Release a retained player back to the auction pool")
+    public ResponseEntity<Void> releaseRetainedPlayer(
+            @PathVariable("playerId") Long playerId,
+            @PathVariable("auctionId") Long auctionId) {
+        playerService.releaseRetainedPlayer(auctionId, playerId);
+        return ResponseEntity.ok().build();
+    }
 }

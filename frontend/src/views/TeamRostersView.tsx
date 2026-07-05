@@ -15,6 +15,7 @@ interface RosterPlayer {
   skillLevel: string | null;
   club: string | null;
   soldPrice: number;
+  isRetained: boolean;
 }
 
 interface TeamRoster {
@@ -227,7 +228,17 @@ export const TeamRostersView: React.FC<TeamRostersViewProps> = ({
                                 <Avatar src={player.photoPath ? (player.photoPath.startsWith('http') ? player.photoPath : `${ASSET_BASE_URL}/${player.photoPath}`) : undefined} sx={{ width: 30, height: 30 }}>
                                   <User size={14} />
                                 </Avatar>
-                                <Typography variant="body2" sx={{ fontWeight: 600 }}>{player.name}</Typography>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{player.name}</Typography>
+                                  {player.isRetained && (
+                                    <Chip
+                                      label="Retained"
+                                      size="small"
+                                      color="secondary"
+                                      sx={{ fontSize: '0.65rem', height: 16, px: 0.5 }}
+                                    />
+                                  )}
+                                </Box>
                               </Box>
                             </TableCell>
                             <TableCell>{player.category}</TableCell>
@@ -292,7 +303,7 @@ export const TeamRostersView: React.FC<TeamRostersViewProps> = ({
                 {roster.players.map((player, idx) => (
                   <tr key={player.playerId} style={{ borderBottom: '1px solid #ddd' }}>
                     <td style={{ padding: '6px' }}>{idx + 1}</td>
-                    <td style={{ padding: '6px' }}>{player.name}</td>
+                    <td style={{ padding: '6px' }}>{player.name} {player.isRetained ? '(Retained)' : ''}</td>
                     <td style={{ padding: '6px' }}>{player.category}</td>
                     <td style={{ padding: '6px' }}>{player.club || '—'}</td>
                     <td style={{ padding: '6px', textAlign: 'right' }}>₹{player.soldPrice}</td>

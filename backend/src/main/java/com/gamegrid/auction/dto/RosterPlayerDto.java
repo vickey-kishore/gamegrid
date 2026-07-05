@@ -15,4 +15,5 @@ public class RosterPlayerDto {
     private String skillLevel;
     private String club;
     private BigDecimal soldPrice;
+    private boolean isRetained;
 }

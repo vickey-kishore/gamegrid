@@ -25,6 +25,7 @@ public class PlayerService {
     private final PlayerRepository playerRepository;
     private final AuctionRepository auctionRepository;
     private final AuctionPlayerRepository auctionPlayerRepository;
+    private final AuctionTeamRepository auctionTeamRepository;
 
     @Transactional
     public PlayerImportResult importPlayers(MultipartFile file) {
@@ -477,6 +478,93 @@ public class PlayerService {
         AuctionPlayer ap = auctionPlayerRepository.findByAuctionIdAndPlayerId(auctionId, playerId)
                 .orElseThrow(() -> new EntityNotFoundException("Player not registered in this auction"));
         auctionPlayerRepository.delete(ap);
+    }
+
+    @Transactional
+    public void retainPlayer(Long auctionId, Long playerId, Long teamId, BigDecimal retentionPrice) {
+        AuctionPlayer ap = auctionPlayerRepository.findByAuctionIdAndPlayerId(auctionId, playerId)
+                .orElseThrow(() -> new EntityNotFoundException("Player not registered in this auction"));
+
+        Auction auction = ap.getAuction();
+        if (!auction.isAllowRetention()) {
+            throw new IllegalArgumentException("Retention is not enabled for this auction.");
+        }
+
+        AuctionTeam team = auctionTeamRepository.findById(teamId)
+                .orElseThrow(() -> new EntityNotFoundException("Team not found with ID: " + teamId));
+
+        if (!team.getAuction().getId().equals(auctionId)) {
+            throw new IllegalArgumentException("Team does not belong to this auction.");
+        }
+
+        if (team.getRemainingPurse().compareTo(retentionPrice) < 0) {
+            throw new IllegalArgumentException("Team does not have enough purse to retain this player.");
+        }
+
+        // Count current retained players for this team
+        long currentTeamRetained = auctionPlayerRepository.findByTeamId(teamId).stream()
+                .filter(p -> p.isRetained())
+                .count();
+
+        if (auction.getMaxRetainedPlayers() != null && auction.getMaxRetainedPlayers() > 0 && currentTeamRetained >= auction.getMaxRetainedPlayers()) {
+            throw new IllegalArgumentException("Team has already reached the maximum retention limit of " + auction.getMaxRetainedPlayers() + " player(s).");
+        }
+
+        // Check category limit
+        String category = ap.getPlayer().getCategory();
+        if (category != null && auction.getRosterRules() != null) {
+            Optional<RosterRule> ruleOpt = auction.getRosterRules().stream()
+                    .filter(r -> r.getCategory() != null && r.getCategory().equalsIgnoreCase(category.trim()))
+                    .findFirst();
+
+            if (ruleOpt.isPresent()) {
+                RosterRule rule = ruleOpt.get();
+                if (rule.getMaxRetentionLimit() > 0) {
+                    long currentCategoryRetained = auctionPlayerRepository.findByTeamId(teamId).stream()
+                            .filter(p -> p.isRetained() && p.getPlayer().getCategory() != null && p.getPlayer().getCategory().equalsIgnoreCase(category.trim()))
+                            .count();
+                    if (currentCategoryRetained >= rule.getMaxRetentionLimit()) {
+                        throw new IllegalArgumentException("Team has already reached the retention limit of " + rule.getMaxRetentionLimit() + " player(s) for category " + rule.getCategory() + ".");
+                    }
+                }
+            }
+        }
+
+        // Set status and deduct purse
+        ap.setStatus(PlayerStatus.Sold);
+        ap.setSoldPrice(retentionPrice);
+        ap.setTeam(team);
+        ap.setRetained(true);
+        ap.setSoldAt(java.time.LocalDateTime.now());
+
+        team.setRemainingPurse(team.getRemainingPurse().subtract(retentionPrice));
+
+        auctionPlayerRepository.save(ap);
+        auctionTeamRepository.save(team);
+    }
+
+    @Transactional
+    public void releaseRetainedPlayer(Long auctionId, Long playerId) {
+        AuctionPlayer ap = auctionPlayerRepository.findByAuctionIdAndPlayerId(auctionId, playerId)
+                .orElseThrow(() -> new EntityNotFoundException("Player not registered in this auction"));
+
+        if (!ap.isRetained()) {
+            throw new IllegalArgumentException("Player is not a retained player.");
+        }
+
+        AuctionTeam team = ap.getTeam();
+        if (team != null) {
+            team.setRemainingPurse(team.getRemainingPurse().add(ap.getSoldPrice()));
+            auctionTeamRepository.save(team);
+        }
+
+        ap.setStatus(PlayerStatus.Available);
+        ap.setSoldPrice(null);
+        ap.setTeam(null);
+        ap.setRetained(false);
+        ap.setSoldAt(null);
+
+        auctionPlayerRepository.save(ap);
     }
 
     private String processPhotoPath(String photo) {
