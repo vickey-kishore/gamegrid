@@ -14,6 +14,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.math.BigDecimal;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -106,12 +107,26 @@ public class AuctionService {
 
         Auction savedAuction = auctionRepository.save(auction);
 
-        // Delete existing teams and re-create them or update
+        // Update teams in-place to avoid duplicate key issues or breaking references
         List<AuctionTeam> existingTeams = auctionTeamRepository.findByAuctionId(id);
         
-        // Delete logos if necessary
+        java.util.Map<Long, TeamConfig> requestTeamMap = new java.util.HashMap<>();
+        for (TeamConfig tc : request.getTeams()) {
+            if (tc.getId() != null) {
+                requestTeamMap.put(tc.getId(), tc);
+            }
+        }
+
+        List<AuctionTeam> teamsToDelete = new java.util.ArrayList<>();
         for (AuctionTeam et : existingTeams) {
-            if (et.getLogoPath() != null && request.getTeams().stream().noneMatch(t -> et.getLogoPath().equals(t.getLogoPath()))) {
+            if (!requestTeamMap.containsKey(et.getId())) {
+                teamsToDelete.add(et);
+            }
+        }
+
+        // Delete logos for removed teams
+        for (AuctionTeam et : teamsToDelete) {
+            if (et.getLogoPath() != null) {
                 try {
                     Files.deleteIfExists(Paths.get(et.getLogoPath()));
                 } catch (IOException eloquence) {
@@ -119,19 +134,44 @@ public class AuctionService {
                 }
             }
         }
-        auctionTeamRepository.deleteAll(existingTeams);
+        
+        if (!teamsToDelete.isEmpty()) {
+            auctionTeamRepository.deleteAll(teamsToDelete);
+            auctionTeamRepository.flush();
+        }
 
-        List<TeamConfig> savedTeams = new ArrayList<>();
+        List<TeamConfig> savedTeams = new java.util.ArrayList<>();
         for (TeamConfig teamConfig : request.getTeams()) {
-            AuctionTeam team = AuctionTeam.builder()
-                    .auction(savedAuction)
-                    .teamName(teamConfig.getTeamName())
-                    .logoPath(teamConfig.getLogoPath())
-                    .purseAmount(teamConfig.getPurseAmount())
-                    .remainingPurse(teamConfig.getPurseAmount())
-                    .minimumPlayers(teamConfig.getMinimumPlayers())
-                    .maximumPlayers(teamConfig.getMaximumPlayers())
-                    .build();
+            AuctionTeam team;
+            if (teamConfig.getId() != null) {
+                team = auctionTeamRepository.findById(teamConfig.getId())
+                        .orElseThrow(() -> new EntityNotFoundException("Team not found with ID: " + teamConfig.getId()));
+                team.setTeamName(teamConfig.getTeamName());
+                team.setLogoPath(teamConfig.getLogoPath());
+                team.setPurseAmount(teamConfig.getPurseAmount());
+                
+                // If it is in Draft, update remaining purse to match total purse minus spent purse from retained players
+                if (auction.getStatus() == AuctionStatus.Draft) {
+                    BigDecimal spentPurse = auctionPlayerRepository.findByTeamId(team.getId()).stream()
+                            .filter(ap -> ap.isRetained())
+                            .map(ap -> ap.getSoldPrice() != null ? ap.getSoldPrice() : BigDecimal.ZERO)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                    team.setRemainingPurse(teamConfig.getPurseAmount().subtract(spentPurse));
+                }
+                
+                team.setMinimumPlayers(teamConfig.getMinimumPlayers());
+                team.setMaximumPlayers(teamConfig.getMaximumPlayers());
+            } else {
+                team = AuctionTeam.builder()
+                        .auction(savedAuction)
+                        .teamName(teamConfig.getTeamName())
+                        .logoPath(teamConfig.getLogoPath())
+                        .purseAmount(teamConfig.getPurseAmount())
+                        .remainingPurse(teamConfig.getPurseAmount())
+                        .minimumPlayers(teamConfig.getMinimumPlayers())
+                        .maximumPlayers(teamConfig.getMaximumPlayers())
+                        .build();
+            }
             AuctionTeam savedTeam = auctionTeamRepository.save(team);
             savedTeams.add(mapToTeamConfig(savedTeam));
         }
@@ -170,15 +210,13 @@ public class AuctionService {
     }
 
     @Transactional
-    public void startAuction(Long id) {
+    public void publishAuction(Long id) {
         Auction auction = auctionRepository.findActiveById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Auction not found with ID: " + id));
 
         if (auction.getStatus() != AuctionStatus.Draft) {
-            throw new IllegalStateException("Only Draft auctions can be started.");
+            throw new IllegalStateException("Only Draft auctions can be published.");
         }
-
-
 
         // Initialize players queue for this category / events
         Specification<Player> spec;
@@ -219,11 +257,37 @@ public class AuctionService {
 
         if (allRegisteredAuctionPlayers.size() < requiredMinPlayers) {
             String categoryDesc = auction.getEvents() != null ? auction.getEvents() : auction.getCategory();
-            throw new IllegalStateException("Cannot start auction: Not enough registered players in categories '" + categoryDesc 
+            throw new IllegalStateException("Cannot publish auction: Not enough registered players in categories '" + categoryDesc 
                     + "'. Required minimum: " + requiredMinPlayers + ", Registered in auction: " + allRegisteredAuctionPlayers.size());
         }
 
         auction.setStatus(AuctionStatus.Active);
+        auctionRepository.save(auction);
+    }
+
+    @Transactional
+    public void startAuction(Long id) {
+        Auction auction = auctionRepository.findActiveById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Auction not found with ID: " + id));
+
+        if (auction.getStatus() != AuctionStatus.Active) {
+            throw new IllegalStateException("Only Active (published) auctions can be started.");
+        }
+
+        auction.setStatus(AuctionStatus.Live);
+        auctionRepository.save(auction);
+    }
+
+    @Transactional
+    public void completeAuction(Long id) {
+        Auction auction = auctionRepository.findActiveById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Auction not found with ID: " + id));
+
+        if (auction.getStatus() != AuctionStatus.Live) {
+            throw new IllegalStateException("Only Live auctions can be completed.");
+        }
+
+        auction.setStatus(AuctionStatus.Completed);
         auctionRepository.save(auction);
     }
 

@@ -37,8 +37,8 @@ public class BiddingService {
 
         // 2. Validate Auction Status
         Auction auction = ap.getAuction();
-        if (auction.isDeleted() || auction.getStatus() != AuctionStatus.Active) {
-            throw new IllegalStateException("Bids can only be placed on an Active auction.");
+        if (auction.isDeleted() || auction.getStatus() != AuctionStatus.Live) {
+            throw new IllegalStateException("Bids can only be placed on a Live auction.");
         }
 
         // 3. Validate Player Status is Available

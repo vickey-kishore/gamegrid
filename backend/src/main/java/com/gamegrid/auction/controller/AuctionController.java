@@ -83,10 +83,24 @@ public class AuctionController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/{id}/publish")
+    @Operation(summary = "Publish a draft auction to Active status and initialize players pool")
+    public ResponseEntity<Void> publishAuction(@PathVariable("id") Long id) {
+        auctionService.publishAuction(id);
+        return ResponseEntity.ok().build();
+    }
+
     @PostMapping("/{id}/start")
-    @Operation(summary = "Start/activate a draft auction and populate the bidding player pool")
+    @Operation(summary = "Start/activate a published auction into Live status")
     public ResponseEntity<Void> startAuction(@PathVariable("id") Long id) {
         auctionService.startAuction(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{id}/complete")
+    @Operation(summary = "Mark a live auction as Completed")
+    public ResponseEntity<Void> completeAuction(@PathVariable("id") Long id) {
+        auctionService.completeAuction(id);
         return ResponseEntity.ok().build();
     }
 

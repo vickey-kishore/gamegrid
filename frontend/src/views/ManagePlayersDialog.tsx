@@ -252,16 +252,16 @@ export const ManagePlayersDialog: React.FC<ManagePlayersDialogProps> = ({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
-      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: 'primary.main', color: 'white', py: 2 }}>
+      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: '#0e1527', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', py: 2 }}>
         <Box>
-          <Typography variant="h6" component="div" sx={{ fontWeight: 'bold', fontFamily: '"Rajdhani", sans-serif' }}>
+          <Typography variant="h6" component="div" sx={{ fontWeight: 'bold', fontFamily: '"Rajdhani", sans-serif', color: 'primary.main' }}>
             Manage Auction Players
           </Typography>
-          <Typography variant="body2" sx={{ opacity: 0.85 }}>
+          <Typography variant="body2" sx={{ opacity: 0.85, color: '#f1f5f9' }}>
             Auction: {auctionName}
           </Typography>
         </Box>
-        <IconButton onClick={onClose} sx={{ color: 'white' }}>
+        <IconButton onClick={onClose} sx={{ color: '#ffffff' }}>
           <X size={20} />
         </IconButton>
       </DialogTitle>
@@ -328,27 +328,27 @@ export const ManagePlayersDialog: React.FC<ManagePlayersDialogProps> = ({
           <TableContainer component={Paper} variant="outlined">
             <Table size="small">
               <TableHead>
-                <TableRow sx={{ bgcolor: 'action.hover' }}>
-                  <TableCell sx={{ fontWeight: 'bold', width: '60px' }}>S.No</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Player Name</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Category</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Club</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Phone Number</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Email Address</TableCell>
-                  {status === 'Draft' && <TableCell align="center" sx={{ fontWeight: 'bold', width: '120px' }}>Actions</TableCell>}
+                <TableRow sx={{ bgcolor: 'rgba(255, 255, 255, 0.02)' }}>
+                  <TableCell sx={{ fontWeight: 'bold', color: 'primary.main', borderBottom: '1px solid rgba(255,255,255,0.08)', width: '60px' }}>S.No</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', color: 'primary.main', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>Player Name</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', color: 'primary.main', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>Category</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', color: 'primary.main', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>Club</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', color: 'primary.main', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>Phone Number</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', color: 'primary.main', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>Email Address</TableCell>
+                  {status === 'Draft' && <TableCell align="center" sx={{ fontWeight: 'bold', color: 'primary.main', borderBottom: '1px solid rgba(255,255,255,0.08)', width: '120px' }}>Actions</TableCell>}
                 </TableRow>
               </TableHead>
               <TableBody>
                 {filteredPlayers.map((ap, index) => (
-                  <TableRow key={ap.id} hover>
-                    <TableCell sx={{ fontWeight: 600 }}>{index + 1}</TableCell>
-                    <TableCell sx={{ py: 1.5 }}>
+                  <TableRow key={ap.id} hover sx={{ '&:hover': { bgcolor: 'rgba(255,255,255,0.02)' } }}>
+                    <TableCell sx={{ fontWeight: 600, color: '#f1f5f9', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>{index + 1}</TableCell>
+                    <TableCell sx={{ py: 1.5, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         <Avatar src={ap.photoPath ? (ap.photoPath.startsWith('http') ? ap.photoPath : `${ASSET_BASE_URL}/${ap.photoPath}`) : undefined} sx={{ width: 30, height: 30 }}>
                           <User size={14} />
                         </Avatar>
                         <Box>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>{ap.name}</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: '#ffffff' }}>{ap.name}</Typography>
                           {ap.isRetained && (
                             <Typography variant="caption" sx={{ color: 'secondary.main', display: 'block', fontWeight: 600, fontSize: '0.75rem' }}>
                               Retained by {ap.teamName} (₹{ap.soldPrice})
@@ -357,12 +357,12 @@ export const ManagePlayersDialog: React.FC<ManagePlayersDialogProps> = ({
                         </Box>
                       </Box>
                     </TableCell>
-                    <TableCell>{ap.category}</TableCell>
-                    <TableCell>{ap.club || '—'}</TableCell>
-                    <TableCell>{ap.phoneNumber}</TableCell>
-                    <TableCell>{ap.email || '—'}</TableCell>
+                    <TableCell sx={{ color: '#f1f5f9', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>{ap.category}</TableCell>
+                    <TableCell sx={{ color: '#f1f5f9', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>{ap.club || '—'}</TableCell>
+                    <TableCell sx={{ color: '#f1f5f9', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>{ap.phoneNumber}</TableCell>
+                    <TableCell sx={{ color: '#f1f5f9', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>{ap.email || '—'}</TableCell>
                     {status === 'Draft' && (
-                      <TableCell align="center">
+                      <TableCell align="center" sx={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                         <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
                           {auction?.allowRetention && (
                             ap.isRetained ? (

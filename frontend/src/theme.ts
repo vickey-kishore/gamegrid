@@ -143,6 +143,28 @@ export const theme = createTheme({
         },
       },
     },
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          backgroundColor: '#0a0f1d',
+          border: '1px solid rgba(22, 224, 255, 0.15)',
+          backgroundImage: 'none',
+          color: '#ffffff',
+          borderRadius: 12,
+        },
+      },
+    },
+    MuiDialogTitle: {
+      styleOverrides: {
+        root: {
+          fontFamily: '"Rajdhani", sans-serif',
+          fontWeight: 800,
+          fontSize: '1.4rem',
+          color: '#ffffff',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+        },
+      },
+    },
   },
 });
 

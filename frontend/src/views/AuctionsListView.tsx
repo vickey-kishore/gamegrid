@@ -6,7 +6,7 @@ import {
   DialogActions, Select, MenuItem, FormControl, InputLabel, CircularProgress,
   Tooltip
 } from '@mui/material';
-import { Search, Plus, Trash2, Edit2, Play, Eye, Calendar, Award, Upload, Users } from 'lucide-react';
+import { Search, Plus, Trash2, Edit2, Play, Eye, Calendar, Award, Upload, Users, CheckCircle } from 'lucide-react';
 import { ManagePlayersDialog } from './ManagePlayersDialog';
 import { api } from '../api';
 
@@ -19,17 +19,19 @@ interface Auction {
   minimumBid: number;
   bidIncrement: number;
   maximumBid: number | null;
-  status: 'Draft' | 'Active' | 'Completed' | 'Cancelled';
+  status: 'Draft' | 'Active' | 'Live' | 'Completed' | 'Cancelled';
   rosterRules?: { category: string; minCount: number }[];
 }
 
 interface AuctionsListViewProps {
+  userRole: 'CREATOR' | 'PLAYER';
   onCreateClick: () => void;
   onEditClick: (id: number) => void;
   onViewClick: (id: number) => void;
 }
 
 export const AuctionsListView: React.FC<AuctionsListViewProps> = ({
+  userRole,
   onCreateClick,
   onEditClick,
   onViewClick
@@ -122,13 +124,42 @@ export const AuctionsListView: React.FC<AuctionsListViewProps> = ({
     }
   };
 
+  const handlePublishAuction = async (id: number) => {
+    try {
+      setLoading(true);
+      await api.post(`/auctions/${id}/publish`);
+      fetchAuctions();
+      alert('Auction published successfully! It is now Active/Upcoming.');
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to publish auction.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleStartAuction = async (id: number) => {
     try {
+      setLoading(true);
       await api.post(`/auctions/${id}/start`);
       fetchAuctions();
       onViewClick(id); // Transition directly to dashboard
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to start auction.');
+      alert(err.response?.data?.message || 'Failed to start live auction.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCompleteAuction = async (id: number) => {
+    if (!window.confirm('Are you sure you want to mark this live auction as Completed? This will close bidding.')) return;
+    try {
+      setLoading(true);
+      await api.post(`/auctions/${id}/complete`);
+      fetchAuctions();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to complete auction.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -166,14 +197,16 @@ export const AuctionsListView: React.FC<AuctionsListViewProps> = ({
             Manage your local sports tournament bidding campaigns.
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          color="secondary"
-          startIcon={<Plus size={18} />}
-          onClick={onCreateClick}
-        >
-          Create Auction
-        </Button>
+        {userRole === 'CREATOR' && (
+          <Button
+            variant="contained"
+            color="secondary"
+            startIcon={<Plus size={18} />}
+            onClick={onCreateClick}
+          >
+            Create Auction
+          </Button>
+        )}
       </Box>
 
       {/* Filters bar */}
@@ -205,8 +238,9 @@ export const AuctionsListView: React.FC<AuctionsListViewProps> = ({
             onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
           >
             <MenuItem value="ALL">All Statuses</MenuItem>
-            <MenuItem value="Draft">Draft</MenuItem>
+            {userRole === 'CREATOR' && <MenuItem value="Draft">Draft</MenuItem>}
             <MenuItem value="Active">Active</MenuItem>
+            <MenuItem value="Live">Live</MenuItem>
             <MenuItem value="Completed">Completed</MenuItem>
             <MenuItem value="Cancelled">Cancelled</MenuItem>
           </Select>
@@ -220,7 +254,6 @@ export const AuctionsListView: React.FC<AuctionsListViewProps> = ({
             <TableRow>
               <TableCell>Auction Name</TableCell>
               <TableCell>Event</TableCell>
-              <TableCell>Category</TableCell>
               <TableCell>Auction Date</TableCell>
               <TableCell>Status</TableCell>
               <TableCell align="center">Actions</TableCell>
@@ -229,114 +262,143 @@ export const AuctionsListView: React.FC<AuctionsListViewProps> = ({
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 5 }}>
+                <TableCell colSpan={5} align="center" sx={{ py: 5 }}>
                   <CircularProgress size={28} />
                 </TableCell>
               </TableRow>
             ) : auctions.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 5 }}>
+                <TableCell colSpan={5} align="center" sx={{ py: 5 }}>
                   <Typography color="text.secondary">No auctions found matching criteria.</Typography>
                 </TableCell>
               </TableRow>
             ) : (
-              auctions.map((auction) => (
-                <TableRow key={auction.id} hover>
-                  <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>
-                    {auction.auctionName}
-                  </TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Award size={16} color="#94a3b8" />
-                      {auction.eventName}
-                    </Box>
-                  </TableCell>
-                  <TableCell>{auction.category}</TableCell>
-                  <TableCell>
-                    {auction.auctionDate ? (
+              auctions
+                .filter((auction) => userRole === 'CREATOR' || auction.status !== 'Draft')
+                .map((auction) => (
+                  <TableRow key={auction.id} hover>
+                    <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>
+                      {auction.auctionName}
+                    </TableCell>
+                    <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Calendar size={16} color="#94a3b8" />
-                        {auction.auctionDate}
+                        <Award size={16} color="#94a3b8" />
+                        {auction.eventName}
                       </Box>
-                    ) : '—'}
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={auction.status}
-                      color={getStatusChipColor(auction.status)}
-                      size="small"
-                      sx={{ fontWeight: 'bold' }}
-                    />
-                  </TableCell>
-                  <TableCell align="center">
-                    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                      <Tooltip title="View Roster / Dashboard">
-                        <IconButton
-                          color="primary"
-                          size="small"
-                          onClick={() => onViewClick(auction.id)}
-                        >
-                          <Eye size={18} />
-                        </IconButton>
-                      </Tooltip>
+                    </TableCell>
+                    <TableCell>
+                      {auction.auctionDate ? (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Calendar size={16} color="#94a3b8" />
+                          {auction.auctionDate}
+                        </Box>
+                      ) : '—'}
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={auction.status}
+                        color={getStatusChipColor(auction.status)}
+                        size="small"
+                        sx={{ fontWeight: 'bold' }}
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                        <Tooltip title="View Roster / Dashboard">
+                          <IconButton
+                            color="primary"
+                            size="small"
+                            onClick={() => onViewClick(auction.id)}
+                          >
+                            <Eye size={18} />
+                          </IconButton>
+                        </Tooltip>
 
-                      <Tooltip title="View Registered Players">
-                        <IconButton
-                          color="info"
-                          size="small"
-                          onClick={() => handleManagePlayersClick(auction)}
-                        >
-                          <Users size={18} />
-                        </IconButton>
-                      </Tooltip>
+                        <Tooltip title="View Registered Players">
+                          <IconButton
+                            color="info"
+                            size="small"
+                            onClick={() => handleManagePlayersClick(auction)}
+                          >
+                            <Users size={18} />
+                          </IconButton>
+                        </Tooltip>
 
-                      {auction.status === 'Draft' ? (
-                        <>
-                          <Tooltip title="Upload Players Excel">
-                            <IconButton
-                              color="warning"
-                              size="small"
-                              onClick={() => handleUploadPlayersClick(auction.id)}
-                            >
-                              <Upload size={18} />
-                            </IconButton>
-                          </Tooltip>
+                        {userRole === 'CREATOR' && (
+                          <>
+                            {auction.status === 'Draft' && (
+                              <>
+                                <Tooltip title="Upload Players Excel">
+                                  <IconButton
+                                    color="warning"
+                                    size="small"
+                                    onClick={() => handleUploadPlayersClick(auction.id)}
+                                  >
+                                    <Upload size={18} />
+                                  </IconButton>
+                                </Tooltip>
 
-                          <Tooltip title="Edit Auction Settings">
-                            <IconButton
-                              color="info"
-                              size="small"
-                              onClick={() => onEditClick(auction.id)}
-                            >
-                              <Edit2 size={18} />
-                            </IconButton>
-                          </Tooltip>
+                                <Tooltip title="Edit Auction Settings">
+                                  <IconButton
+                                    color="info"
+                                    size="small"
+                                    onClick={() => onEditClick(auction.id)}
+                                  >
+                                    <Edit2 size={18} />
+                                  </IconButton>
+                                </Tooltip>
 
-                          <Tooltip title="Start Auction Bidding">
-                            <IconButton
-                              color="success"
-                              size="small"
-                              onClick={() => handleStartAuction(auction.id)}
-                            >
-                              <Play size={18} />
-                            </IconButton>
-                          </Tooltip>
-                        </>
-                      ) : null}
+                                <Tooltip title="Publish Auction (Go Active)">
+                                  <IconButton
+                                    color="success"
+                                    size="small"
+                                    onClick={() => handlePublishAuction(auction.id)}
+                                  >
+                                    <CheckCircle size={18} />
+                                  </IconButton>
+                                </Tooltip>
+                              </>
+                            )}
 
-                      <Tooltip title="Soft Delete Auction">
-                        <IconButton
-                          color="error"
-                          size="small"
-                          onClick={() => handleDeleteClick(auction.id)}
-                        >
-                          <Trash2 size={18} />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              ))
+                            {auction.status === 'Active' && (
+                              <Tooltip title="Start Live Bidding">
+                                <IconButton
+                                  color="warning"
+                                  size="small"
+                                  onClick={() => handleStartAuction(auction.id)}
+                                >
+                                  <Play size={18} />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+
+                            {auction.status === 'Live' && (
+                              <Tooltip title="Complete Auction">
+                                <IconButton
+                                  color="success"
+                                  size="small"
+                                  onClick={() => handleCompleteAuction(auction.id)}
+                                >
+                                  <CheckCircle size={18} />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+
+                            <Tooltip title="Soft Delete Auction">
+                              <IconButton
+                                color="error"
+                                size="small"
+                                onClick={() => handleDeleteClick(auction.id)}
+                              >
+                                <Trash2 size={18} />
+                              </IconButton>
+                            </Tooltip>
+                          </>
+                        )}
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ))
             )}
           </TableBody>
         </Table>
