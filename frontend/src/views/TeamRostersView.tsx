@@ -92,7 +92,253 @@ export const TeamRostersView: React.FC<TeamRostersViewProps> = ({
   };
 
   const handlePrint = () => {
-    window.print();
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Pop-ups are blocked. Please enable pop-ups to print rosters.');
+      return;
+    }
+
+
+
+    const auctionName = auction?.auctionName || 'Auction Roster';
+
+    const rostersHtml = rosters.map((roster) => {
+      const ruleMetadataHtml = auction?.rosterRules?.map((rule: any) => {
+        const count = roster.players.filter((p: any) => p.category?.replace(/\s+/g, ' ').trim().toLowerCase() === rule.category?.replace(/\s+/g, ' ').trim().toLowerCase()).length;
+        const met = count >= rule.minCount;
+        return `
+          <span class="quota-badge" style="color: ${met ? '#16a34a' : '#d97706'}; border-color: ${met ? '#bbf7d0' : '#fef3c7'}; background-color: ${met ? '#f0fdf4' : '#fffbeb'};">
+            ${rule.category}: ${count}/${rule.minCount}
+          </span>
+        `;
+      }).join('') || '';
+
+      const playersRowsHtml = roster.players.map((p, idx) => `
+        <tr>
+          <td class="sno">${idx + 1}</td>
+          <td class="name">${p.name} ${p.isRetained ? '<span style="font-size: 0.65rem; color: #7c3aed; background: #f3e8ff; border: 1px solid #e9d5ff; padding: 1px 4px; border-radius: 3px; margin-left: 5px; font-weight: 600;">Retained</span>' : ''}</td>
+          <td>${p.category}</td>
+          <td>${p.club || '—'}</td>
+          <td class="price">₹${(p.soldPrice || 0).toLocaleString('en-IN')}</td>
+        </tr>
+      `).join('') || `<tr><td colspan="5" style="text-align: center; color: #94a3b8; font-style: italic; padding: 20px;">No players purchased yet.</td></tr>`;
+
+      return `
+        <div class="team-section">
+          <div class="team-header">
+            <h2 class="team-name">${roster.teamName}</h2>
+          </div>
+          
+          <div class="team-summary">
+            <span>Total Budget: <strong>₹${roster.purseAmount.toLocaleString('en-IN')}</strong></span>
+            <span>Spent: <strong>₹${roster.totalSpent.toLocaleString('en-IN')}</strong></span>
+            <span>Remaining Purse: <strong style="color: #16a34a;">₹${roster.remainingPurse.toLocaleString('en-IN')}</strong></span>
+            <span>Squad Size: <strong>${roster.totalPlayersPurchased}</strong></span>
+          </div>
+          
+          ${ruleMetadataHtml ? `<div class="category-quotas">${ruleMetadataHtml}</div>` : ''}
+          
+          <table class="players-table">
+            <thead>
+              <tr>
+                <th style="width: 50px;">S.No</th>
+                <th>Player Name</th>
+                <th style="width: 150px;">Category</th>
+                <th style="width: 150px;">Club</th>
+                <th style="text-align: right; width: 120px;">Sold Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${playersRowsHtml}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }).join('');
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>${auctionName} - Roster Summary</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+            html, body {
+              font-family: 'Inter', sans-serif;
+              color: #ffffff;
+              background-color: #0b0f19;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+              margin: 0;
+              padding: 0;
+            }
+            @page {
+              size: auto;
+              margin: 0;
+            }
+            body {
+              margin: 0 1.6cm;
+              padding-top: 1.5cm;
+              padding-bottom: 1.5cm;
+              background-color: #0b0f19 !important;
+            }
+            .print-watermark {
+              position: fixed;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%) rotate(-45deg);
+              font-size: 7rem;
+              color: rgba(255, 255, 255, 0.02);
+              font-family: 'Rajdhani', sans-serif;
+              font-weight: 900;
+              letter-spacing: 5px;
+              text-transform: uppercase;
+              white-space: nowrap;
+              z-index: -1000;
+              pointer-events: none;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 2.5rem;
+            }
+            .header h1 {
+              font-family: 'Rajdhani', sans-serif;
+              font-weight: 800;
+              font-size: 2.2rem;
+              margin: 0;
+              color: #ffffff;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+            }
+            .header p {
+              font-size: 0.95rem;
+              color: #94a3b8;
+              margin: 5px 0 0 0;
+              font-weight: 500;
+            }
+            
+            .team-section {
+              margin-bottom: 3.5rem;
+              page-break-inside: avoid;
+              border: 1px solid rgba(255, 255, 255, 0.06);
+              border-radius: 8px;
+              padding: 1.5rem;
+              background-color: #141B2D;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+            .team-header {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+              padding-bottom: 0.8rem;
+              margin-bottom: 1rem;
+            }
+            .team-name {
+              font-family: 'Rajdhani', sans-serif;
+              font-weight: 800;
+              font-size: 1.6rem;
+              margin: 0;
+              color: #ffffff;
+            }
+            .team-summary {
+              display: flex;
+              gap: 2rem;
+              font-size: 0.85rem;
+              color: #cbd5e1;
+              margin-bottom: 1rem;
+              flex-wrap: wrap;
+            }
+            .team-summary span strong {
+              color: #ffffff;
+            }
+            
+            .category-quotas {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 0.8rem;
+              margin-bottom: 1.2rem;
+            }
+            .quota-badge {
+              font-size: 0.72rem;
+              font-weight: 700;
+              padding: 3px 8px;
+              border-radius: 4px;
+              border: 1px solid rgba(255, 255, 255, 0.08);
+              background-color: rgba(255, 255, 255, 0.03);
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+            
+            .players-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 0.5rem;
+            }
+            .players-table th {
+              background-color: #1e293b;
+              color: #94a3b8;
+              font-size: 0.78rem;
+              font-weight: 700;
+              text-transform: uppercase;
+              padding: 8px 10px;
+              border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+              text-align: left;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+            .players-table td {
+              padding: 8px 10px;
+              border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+              font-size: 0.82rem;
+              color: #e2e8f0;
+            }
+            .players-table tr:last-child td {
+              border-bottom: none;
+            }
+            .players-table .sno {
+              color: #64748b;
+              font-weight: 600;
+              width: 40px;
+            }
+            .players-table .name {
+              font-weight: 600;
+              color: #ffffff;
+            }
+            .players-table .price {
+              font-weight: 700;
+              color: #16E0FF;
+              text-align: right;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="print-watermark">Game Grid</div>
+          
+          <div class="header">
+            <h1>${auctionName}</h1>
+            <p>Official Franchise Roster Summary Sheet</p>
+          </div>
+          
+          ${rostersHtml}
+          
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(function() { window.close(); }, 500);
+            };
+          </script>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
   };
 
   if (loading) {
@@ -132,7 +378,7 @@ export const TeamRostersView: React.FC<TeamRostersViewProps> = ({
           
           // Calculate counts for each rule dynamically
           const ruleMetadata = auction?.rosterRules?.map((rule: any) => {
-            const count = roster.players.filter(p => p.category?.trim().toLowerCase() === rule.category?.trim().toLowerCase()).length;
+            const count = roster.players.filter(p => p.category?.replace(/\s+/g, ' ').trim().toLowerCase() === rule.category?.replace(/\s+/g, ' ').trim().toLowerCase()).length;
             return {
               category: rule.category,
               current: count,
@@ -257,145 +503,6 @@ export const TeamRostersView: React.FC<TeamRostersViewProps> = ({
           );
         })}
       </Box>
-
-      {/* PRINT-ONLY SECTION (Styled cleanly for print output / PDF generator) */}
-      <Box className="print-only" sx={{ display: 'none' }}>
-        <Typography className="print-main-title" variant="h4" align="center" gutterBottom sx={{ mb: 4, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1.5px' }}>
-          {auction?.auctionName || 'Auction'} - Roster Summary
-        </Typography>
-
-        {rosters.map((roster) => (
-          <Box key={roster.teamId} sx={{ mb: 5, pageBreakInside: 'avoid' }}>
-            <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1, borderBottom: '2px solid #000', pb: 0.5 }}>
-              {roster.teamName}
-            </Typography>
-            
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-              <Typography variant="body2">Total Budget: <strong>₹{roster.purseAmount}</strong></Typography>
-              <Typography variant="body2">Spent: <strong>₹{roster.totalSpent}</strong></Typography>
-              <Typography variant="body2">Remaining Purse: <strong>₹{roster.remainingPurse}</strong></Typography>
-              <Typography variant="body2">Players: <strong>{roster.totalPlayersPurchased}</strong></Typography>
-            </Box>
-
-            {(() => {
-              const ruleMetadata = auction?.rosterRules?.map((rule: any) => {
-                const count = roster.players.filter(p => p.category?.trim().toLowerCase() === rule.category?.trim().toLowerCase()).length;
-                return `${rule.category}: ${count}/${rule.minCount}`;
-              }) || [];
-              return ruleMetadata.length > 0 ? (
-                <Typography variant="body2" sx={{ mb: 2, color: '#334155' }}>
-                  Roster Quotas: {ruleMetadata.join('  |  ')}
-                </Typography>
-              ) : null;
-            })()}
-
-            <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid #000', textAlign: 'left' }}>
-                  <th style={{ padding: '6px', width: '40px' }}>S.No</th>
-                  <th style={{ padding: '6px' }}>Player Name</th>
-                  <th style={{ padding: '6px' }}>Category</th>
-                  <th style={{ padding: '6px' }}>Club</th>
-                  <th style={{ padding: '6px', textAlign: 'right' }}>Sold Price</th>
-                </tr>
-              </thead>
-              <tbody>
-                {roster.players.map((player, idx) => (
-                  <tr key={player.playerId} style={{ borderBottom: '1px solid #ddd' }}>
-                    <td style={{ padding: '6px' }}>{idx + 1}</td>
-                    <td style={{ padding: '6px' }}>{player.name} {player.isRetained ? '(Retained)' : ''}</td>
-                    <td style={{ padding: '6px' }}>{player.category}</td>
-                    <td style={{ padding: '6px' }}>{player.club || '—'}</td>
-                    <td style={{ padding: '6px', textAlign: 'right' }}>₹{player.soldPrice}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Box>
-        ))}
-      </Box>
-
-      {/* Global CSS injection for printing */}
-      <style>{`
-        @media print {
-          @page {
-            size: auto;
-            margin: 0mm;
-          }
-          html, body {
-            background-color: #0b0f19 !important;
-            color: #ffffff !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-            color-adjust: exact !important;
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-          /* Print Watermark */
-          body::after {
-            content: "game grid";
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-45deg);
-            font-size: 8rem;
-            color: rgba(255, 255, 255, 0.03) !important;
-            z-index: -1000;
-            pointer-events: none;
-            font-family: 'Rajdhani', sans-serif;
-            font-weight: 900;
-            letter-spacing: 5px;
-            text-transform: uppercase;
-          }
-          .no-print {
-            display: none !important;
-          }
-          .print-only {
-            display: block !important;
-            background-color: #0b0f19 !important;
-            color: #ffffff !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-            color-adjust: exact !important;
-            padding: 2.5cm !important;
-            min-height: 100vh;
-            box-sizing: border-box;
-          }
-          .print-only * {
-            color: #ffffff !important;
-          }
-          .print-main-title {
-            color: #00f0ff !important;
-            font-weight: 800 !important;
-          }
-          table {
-            color: #ffffff !important;
-            background-color: rgba(255, 255, 255, 0.02) !important;
-            border-radius: 8px !important;
-            overflow: hidden !important;
-            width: 100%;
-            border-collapse: collapse !important;
-          }
-          tr {
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-          }
-          td {
-            color: #ffffff !important;
-            padding: 8px !important;
-          }
-          th {
-            background-color: #1e293b !important;
-            color: #ffffff !important;
-            font-weight: bold !important;
-            text-transform: uppercase !important;
-            font-size: 0.85rem !important;
-            padding: 8px !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-            color-adjust: exact !important;
-          }
-        }
-      `}</style>
 
     </Box>
   );

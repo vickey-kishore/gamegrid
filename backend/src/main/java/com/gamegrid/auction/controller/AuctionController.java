@@ -114,4 +114,11 @@ public class AuctionController {
         List<AuctionPlayerResponse> response = auctionService.getAuctionPlayers(auctionId, status, category, search);
         return ResponseEntity.ok(response);
     }
+
+    @DeleteMapping("/{id}/players")
+    @Operation(summary = "Remove all players from an auction (allowed in Draft status)")
+    public ResponseEntity<Void> clearAuctionPlayers(@PathVariable("id") Long id) {
+        auctionService.clearAuctionPlayers(id);
+        return ResponseEntity.ok().build();
+    }
 }

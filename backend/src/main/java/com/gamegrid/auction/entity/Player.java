@@ -18,10 +18,9 @@ public class Player {
     @Column(nullable = false)
     private String name;
 
-    @Column(name = "phone_number", nullable = false, unique = true)
+    @Column(name = "phone_number", nullable = false)
     private String phoneNumber;
 
-    @Column(unique = true)
     private String email;
 
     private String gender;

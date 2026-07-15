@@ -258,6 +258,9 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
           <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center', display: 'block', mt: 2 }}>
             Developer Sandbox Mode • Built for GameGrid League Management.
           </Typography>
+          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.2)', textAlign: 'center', display: 'block', mt: 0.5, fontSize: '0.62rem' }}>
+            © 2026 GameGrid. All rights reserved.
+          </Typography>
         </Box>
       </Card>
     </Box>

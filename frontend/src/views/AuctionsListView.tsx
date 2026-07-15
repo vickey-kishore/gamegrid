@@ -183,6 +183,7 @@ export const AuctionsListView: React.FC<AuctionsListViewProps> = ({
     switch (status) {
       case 'Draft': return 'default';
       case 'Active': return 'info';
+      case 'Live': return 'warning';
       case 'Completed': return 'success';
       case 'Cancelled': return 'error';
     }

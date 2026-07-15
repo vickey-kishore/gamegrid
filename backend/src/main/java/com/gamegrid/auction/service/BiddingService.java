@@ -199,11 +199,19 @@ public class BiddingService {
     }
 
     private boolean matchesCategory(Player player, String targetCategory) {
-        if (player.getCategory() != null && player.getCategory().equalsIgnoreCase(targetCategory.trim())) {
-            return true;
+        if (targetCategory == null) return false;
+        String normalizedTarget = targetCategory.replaceAll("\\s+", " ").trim();
+        if (player.getCategory() != null) {
+            String normalizedPlayerCat = player.getCategory().replaceAll("\\s+", " ").trim();
+            if (normalizedPlayerCat.equalsIgnoreCase(normalizedTarget)) {
+                return true;
+            }
         }
-        if (player.getGender() != null && player.getGender().equalsIgnoreCase(targetCategory.trim())) {
-            return true;
+        if (player.getGender() != null) {
+            String normalizedPlayerGender = player.getGender().replaceAll("\\s+", " ").trim();
+            if (normalizedPlayerGender.equalsIgnoreCase(normalizedTarget)) {
+                return true;
+            }
         }
         return false;
     }

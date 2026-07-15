@@ -65,33 +65,34 @@ const parseMarkdownToJSX = (text: string): React.ReactNode[] => {
     const line = rawLines[i];
     const trimmed = line.trim();
 
-    // Check if this line starts a table
-    if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+    // Robust Table Detection
+    if (trimmed.includes('|') && i + 1 < rawLines.length && rawLines[i+1].trim().includes('|') && /^[\s-:|]+$/.test(rawLines[i+1].trim().replace(/[a-zA-Z0-9]/g, ''))) {
       const tableLines: string[] = [];
-      while (i < rawLines.length && rawLines[i].trim().startsWith('|')) {
+      while (i < rawLines.length && rawLines[i].trim().includes('|')) {
         tableLines.push(rawLines[i].trim());
         i++;
       }
-
-      if (tableLines.length >= 1) {
+      
+      if (tableLines.length >= 2) {
         const parseRow = (rowStr: string) => {
-          const cells = rowStr.split('|').map(c => c.trim());
-          if (cells.length > 2) {
-            return cells.slice(1, cells.length - 1);
-          }
-          return [];
+          let cleaned = rowStr;
+          if (cleaned.startsWith('|')) cleaned = cleaned.substring(1);
+          if (cleaned.endsWith('|')) cleaned = cleaned.substring(0, cleaned.length - 1);
+          return cleaned.split('|').map(c => c.trim());
         };
 
         const headers = parseRow(tableLines[0]);
-        const hasSeparator = tableLines.length > 1 && /^\|[\s-:|]*\|$/.test(tableLines[1]);
-        const dataRowsStart = hasSeparator ? 2 : 1;
+        const separatorRow = parseRow(tableLines[1]);
+        const isSeparator = separatorRow.every(cell => /^[\s-:]+$/.test(cell));
+        const dataRowsStart = isSeparator ? 2 : 1;
 
         const rows: string[][] = [];
         for (let r = dataRowsStart; r < tableLines.length; r++) {
           const cells = parseRow(tableLines[r]);
-          if (cells.length > 0) {
-            rows.push(cells);
+          while (cells.length < headers.length) {
+            cells.push('');
           }
+          rows.push(cells.slice(0, headers.length));
         }
 
         elements.push(

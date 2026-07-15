@@ -438,4 +438,32 @@ public class AuctionService {
                     .build();
         }).collect(Collectors.toList());
     }
+
+    @Transactional
+    public void clearAuctionPlayers(Long auctionId) {
+        Auction auction = auctionRepository.findActiveById(auctionId)
+                .orElseThrow(() -> new EntityNotFoundException("Auction not found with ID: " + auctionId));
+
+        if (auction.getStatus() != AuctionStatus.Draft) {
+            throw new IllegalStateException("Players can only be removed from Draft auctions.");
+        }
+
+        // Restore teams purse
+        List<AuctionTeam> teams = auctionTeamRepository.findByAuctionId(auctionId);
+        for (AuctionTeam team : teams) {
+            team.setRemainingPurse(team.getPurseAmount());
+            auctionTeamRepository.save(team);
+        }
+
+        // Delete bids
+        bidRepository.deleteByAuctionId(auctionId);
+
+        // Delete auction players and corresponding players
+        List<AuctionPlayer> players = auctionPlayerRepository.findByAuctionId(auctionId);
+        for (AuctionPlayer ap : players) {
+            Player p = ap.getPlayer();
+            auctionPlayerRepository.delete(ap);
+            playerRepository.delete(p);
+        }
+    }
 }

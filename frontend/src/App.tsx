@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
-import { ThemeProvider, CssBaseline, Typography, Button, Container, Box, Avatar, IconButton, InputBase, Badge, Tooltip } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { ThemeProvider, CssBaseline, Typography, Button, Container, Box, Avatar, IconButton, InputBase, Badge, Tooltip, Chip } from '@mui/material';
 import {
   Home, Trophy, Coins, Target, FileText, Settings,
-  HelpCircle, Bell, Search, PlaySquare, Landmark
+  HelpCircle, Bell, Search, PlaySquare, Landmark,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import theme from './theme';
+import { api } from './api';
 import { AuctionsListView } from './views/AuctionsListView';
 import ImportPlayersView from './views/ImportPlayersView';
 import { AuctionFormView } from './views/AuctionFormView';
@@ -14,11 +16,16 @@ import { HomeDashboardView } from './views/HomeDashboardView';
 import { TournamentFormView } from './views/TournamentFormView';
 import { TournamentDetailView } from './views/TournamentDetailView';
 import { TournamentsListView } from './views/TournamentsListView';
-
+import { AuctionShowcaseView } from './views/AuctionShowcaseView';
 
 type ViewState = 'home-dashboard' | 'auctions-list' | 'tournaments-list' | 'import-players' | 'create-auction' | 'edit-auction' | 'dashboard' | 'rosters' | 'create-tournament' | 'edit-tournament' | 'tournament-detail';
 
 export const App: React.FC = () => {
+  // Check if we are running in the Showcase view mode via URL parameters
+  const params = new URLSearchParams(window.location.search);
+  const isShowcaseMode = params.get('view') === 'showcase';
+  const showcaseAuctionId = params.get('auctionId') ? parseInt(params.get('auctionId')!) : null;
+
   const [currentUser] = useState<{ name: string; email: string; picture: string | null; role: 'CREATOR' | 'PLAYER' }>({
     name: "Admin Hub",
     email: "organizer@gamegrid.com",
@@ -27,9 +34,23 @@ export const App: React.FC = () => {
   });
   const [currentView, setCurrentView] = useState<ViewState>('home-dashboard');
   const [selectedAuctionId, setSelectedAuctionId] = useState<number | null>(null);
+  const [selectedAuctionName, setSelectedAuctionName] = useState<string>('');
   const [selectedTournamentId, setSelectedTournamentId] = useState<number | null>(null);
   const [fixturesTabInitial, setFixturesTabInitial] = useState<number>(0);
   const [globalSearchText, setGlobalSearchText] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  useEffect(() => {
+    if (selectedAuctionId) {
+      api.get(`/auctions/${selectedAuctionId}`).then(res => {
+        setSelectedAuctionName(res.data.auctionName);
+      }).catch(err => {
+        console.error("Failed to fetch auction details in App frame:", err);
+      });
+    } else {
+      setSelectedAuctionName('');
+    }
+  }, [selectedAuctionId]);
 
   const handleNavigate = (view: ViewState) => {
     setCurrentView(view);
@@ -67,6 +88,15 @@ export const App: React.FC = () => {
 
 
 
+  if (isShowcaseMode) {
+    return (
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <AuctionShowcaseView auctionId={showcaseAuctionId} />
+      </ThemeProvider>
+    );
+  }
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -76,7 +106,9 @@ export const App: React.FC = () => {
         {/* LEFT SIDEBAR */}
         <Box
           sx={{
-            width: 260,
+            width: sidebarOpen ? 260 : 0,
+            transform: sidebarOpen ? 'translateX(0)' : 'translateX(-260px)',
+            transition: 'all 0.3s ease',
             backgroundColor: '#111827',
             borderRight: '1px solid rgba(255, 255, 255, 0.05)',
             display: 'flex',
@@ -318,19 +350,50 @@ export const App: React.FC = () => {
             <Typography variant="caption" sx={{ display: 'block', mt: 0.5, textAlign: 'center', color: 'text.secondary', fontSize: '0.65rem' }}>
               GameGrid v1.0.0
             </Typography>
+            <Typography variant="caption" sx={{ display: 'block', mt: 0.2, textAlign: 'center', color: 'rgba(255,255,255,0.2)', fontSize: '0.62rem' }}>
+              © 2026 GameGrid. All rights reserved.
+            </Typography>
           </Box>
         </Box>
+
+        {/* FLOATING SIDEBAR TOGGLE BUTTON AT MIDDLE OUTER EDGE */}
+        <IconButton
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          sx={{
+            position: 'fixed',
+            left: sidebarOpen ? '244px' : '8px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            zIndex: 1300,
+            transition: 'all 0.3s ease',
+            width: 32,
+            height: 32,
+            bgcolor: '#1F2937',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+            color: '#16E0FF',
+            '&:hover': {
+              bgcolor: '#374151',
+              color: '#ffffff',
+              borderColor: '#16E0FF'
+            }
+          }}
+          className="no-print"
+        >
+          {sidebarOpen ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
+        </IconButton>
 
         {/* MAIN PANEL CONTENT WRAPPER */}
         <Box
           sx={{
             flexGrow: 1,
-            marginLeft: '260px',
-            width: 'calc(100% - 260px)',
+            marginLeft: sidebarOpen ? '260px' : '0px',
+            width: sidebarOpen ? 'calc(100% - 260px)' : '100%',
             display: 'flex',
             flexDirection: 'column',
             minHeight: '100vh',
-            backgroundColor: '#0B1020'
+            backgroundColor: '#0B1020',
+            transition: 'all 0.3s ease'
           }}
         >
           {/* TOP BAR NAVIGATION */}
@@ -350,30 +413,69 @@ export const App: React.FC = () => {
             }}
             className="no-print"
           >
-            {/* Search Input Box */}
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                backgroundColor: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                borderRadius: 2,
-                px: 2,
-                py: 0.5,
-                width: '320px',
-                '&:focus-within': {
-                  borderColor: '#16E0FF',
-                  boxShadow: '0 0 8px rgba(22, 224, 255, 0.2)'
-                }
-              }}
-            >
-              <Search size={16} color="#94a3b8" />
-              <InputBase
-                placeholder="Search tournaments, auctions, players..."
-                value={globalSearchText}
-                onChange={(e) => setGlobalSearchText(e.target.value)}
-                sx={{ ml: 1.5, fontSize: '0.85rem', width: '100%', color: '#ffffff' }}
-              />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              {currentView === 'dashboard' ? (
+                /* Showcase Auction Title in Global Header during Live Auction */
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Typography
+                    variant="h5"
+                    sx={{
+                      fontWeight: 900,
+                      color: '#ffffff',
+                      fontFamily: '"Rajdhani", sans-serif',
+                      textTransform: 'uppercase',
+                      letterSpacing: '1.25px',
+                      background: 'linear-gradient(90deg, #ffffff 0%, #16E0FF 100%)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      lineHeight: 1.2
+                    }}
+                  >
+                    {selectedAuctionName || 'LIVE AUCTION'}
+                  </Typography>
+                  <Chip
+                    label="LIVE"
+                    size="small"
+                    color="warning"
+                    sx={{
+                      fontWeight: 800,
+                      fontSize: '0.65rem',
+                      height: '18px',
+                      borderRadius: 1,
+                      px: 0.5,
+                      bgcolor: '#F59E0B',
+                      color: '#0B1020',
+                      boxShadow: '0 0 8px rgba(245, 158, 11, 0.4)'
+                    }}
+                  />
+                </Box>
+              ) : (
+                /* Search Input Box */
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: 2,
+                    px: 2,
+                    py: 0.5,
+                    width: '320px',
+                    '&:focus-within': {
+                      borderColor: '#16E0FF',
+                      boxShadow: '0 0 8px rgba(22, 224, 255, 0.2)'
+                    }
+                  }}
+                >
+                  <Search size={16} color="#94a3b8" />
+                  <InputBase
+                    placeholder="Search tournaments, auctions, players..."
+                    value={globalSearchText}
+                    onChange={(e) => setGlobalSearchText(e.target.value)}
+                    sx={{ ml: 1.5, fontSize: '0.85rem', width: '100%', color: '#ffffff' }}
+                  />
+                </Box>
+              )}
             </Box>
 
             {/* Topbar Right Controls */}

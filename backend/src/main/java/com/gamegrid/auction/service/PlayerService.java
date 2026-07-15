@@ -291,6 +291,15 @@ public class PlayerService {
                 return result;
             }
 
+            List<String> validCategories = new ArrayList<>();
+            if (auction.getRosterRules() != null) {
+                for (RosterRule rule : auction.getRosterRules()) {
+                    if (rule.getCategory() != null) {
+                        validCategories.add(rule.getCategory().replaceAll("\\s+", " ").trim());
+                    }
+                }
+            }
+
             int rowNum = 1;
 
             while (rows.hasNext()) {
@@ -307,7 +316,7 @@ public class PlayerService {
                 String email = getCellValue(row, headerMap.get("email"));
                 String gender = getCellValue(row, headerMap.get("gender"));
                 String ageStr = getCellValue(row, headerMap.get("age"));
-                String category = getCellValue(row, headerMap.get("category"));
+                String category = getCellValue(row, headerMap.get("category")).replaceAll("\\s+", " ").trim();
                 String city = getCellValue(row, headerMap.get("city"));
                 String state = getCellValue(row, headerMap.get("state"));
                 String skillLevel = getCellValue(row, headerMap.get("skill"));
@@ -321,6 +330,23 @@ public class PlayerService {
                     continue;
                 }
 
+                // Check category matching
+                String matchedCategory = null;
+                for (String validCat : validCategories) {
+                    if (validCat.equalsIgnoreCase(category)) {
+                        matchedCategory = validCat;
+                        break;
+                    }
+                }
+
+                if (matchedCategory == null) {
+                    failedRecords++;
+                    errors.add("Row " + rowNum + " failed: Category '" + category + "' is not configured in the roster rules for this auction. Valid categories: " + String.join(", ", validCategories));
+                    continue;
+                }
+
+                category = matchedCategory;
+
                 Integer age = null;
                 if (!ageStr.isEmpty()) {
                     try {
@@ -332,14 +358,12 @@ public class PlayerService {
                     }
                 }
 
-                // Check duplicate or find existing
-                Player player = playerRepository.findByPhoneNumber(phone).orElse(null);
-                if (player == null && !email.isEmpty()) {
-                    player = playerRepository.findByEmail(email).orElse(null);
-                }
+                // Resolve existing registration in this specific auction
+                AuctionPlayer existingAP = auctionPlayerRepository.findByAuctionIdAndPlayerPhoneNumber(auctionId, phone).orElse(null);
+                Player player;
 
-                if (player == null) {
-                    // Create new player
+                if (existingAP == null) {
+                    // Create new player specifically for this auction
                     player = Player.builder()
                             .name(name)
                             .phoneNumber(phone)
@@ -356,8 +380,17 @@ public class PlayerService {
 
                     player = playerRepository.save(player);
                     successfullyImported++;
+
+                    AuctionPlayer ap = AuctionPlayer.builder()
+                            .auction(auction)
+                            .player(player)
+                            .basePrice(auction.getMinimumBid())
+                            .status(PlayerStatus.Available)
+                            .build();
+                    auctionPlayerRepository.save(ap);
                 } else {
-                    // Update existing player details with sheet info
+                    // Update existing player details specifically for this auction
+                    player = existingAP.getPlayer();
                     player.setName(name);
                     if (!email.isEmpty()) player.setEmail(email);
                     if (!category.isEmpty()) player.setCategory(category);
@@ -372,18 +405,6 @@ public class PlayerService {
 
                     player = playerRepository.save(player);
                     duplicateRecords++;
-                }
-
-                // Register to this auction
-                Optional<AuctionPlayer> existingAP = auctionPlayerRepository.findByAuctionIdAndPlayerId(auctionId, player.getId());
-                if (existingAP.isEmpty()) {
-                    AuctionPlayer ap = AuctionPlayer.builder()
-                            .auction(auction)
-                            .player(player)
-                            .basePrice(auction.getMinimumBid())
-                            .status(PlayerStatus.Available)
-                            .build();
-                    auctionPlayerRepository.save(ap);
                 }
             }
 
@@ -401,45 +422,71 @@ public class PlayerService {
 
     @Transactional
     public Player createPlayer(com.gamegrid.auction.dto.PlayerRequest request, Long auctionId) {
-        Optional<Player> existingPhone = playerRepository.findByPhoneNumber(request.getPhoneNumber().trim());
         Player player;
-
-        if (existingPhone.isPresent()) {
-            player = existingPhone.get();
-            player.setName(request.getName());
-            if (request.getEmail() != null) player.setEmail(request.getEmail());
-            player.setCategory(request.getCategory());
-            player.setGender(request.getGender() != null ? request.getGender() : request.getCategory());
-            if (request.getAge() != null) player.setAge(request.getAge());
-            if (request.getCity() != null) player.setCity(request.getCity());
-            if (request.getState() != null) player.setState(request.getState());
-            if (request.getSkillLevel() != null) player.setSkillLevel(request.getSkillLevel());
-            if (request.getPhotoPath() != null) player.setPhotoPath(processPhotoPath(request.getPhotoPath()));
-            if (request.getClub() != null) player.setClub(request.getClub());
-            player = playerRepository.save(player);
-        } else {
-            player = Player.builder()
-                    .name(request.getName())
-                    .phoneNumber(request.getPhoneNumber().trim())
-                    .email(request.getEmail())
-                    .gender(request.getGender() != null ? request.getGender() : request.getCategory())
-                    .age(request.getAge())
-                    .category(request.getCategory())
-                    .city(request.getCity())
-                    .state(request.getState())
-                    .skillLevel(request.getSkillLevel())
-                    .photoPath(processPhotoPath(request.getPhotoPath()))
-                    .club(request.getClub())
-                    .build();
-            player = playerRepository.save(player);
-        }
 
         if (auctionId != null) {
             Auction auction = auctionRepository.findActiveById(auctionId)
                     .orElseThrow(() -> new EntityNotFoundException("Auction not found with ID: " + auctionId));
+
+            // Validate category
+            List<String> validCategories = new ArrayList<>();
+            if (auction.getRosterRules() != null) {
+                for (RosterRule rule : auction.getRosterRules()) {
+                    if (rule.getCategory() != null) {
+                        validCategories.add(rule.getCategory().replaceAll("\\s+", " ").trim());
+                    }
+                }
+            }
+
+            String matchedCategory = null;
+            if (request.getCategory() != null) {
+                String normalizedReqCat = request.getCategory().replaceAll("\\s+", " ").trim();
+                for (String validCat : validCategories) {
+                    if (validCat.equalsIgnoreCase(normalizedReqCat)) {
+                        matchedCategory = validCat;
+                        break;
+                    }
+                }
+            }
+
+            if (matchedCategory == null && !validCategories.isEmpty()) {
+                throw new IllegalArgumentException("Category '" + request.getCategory() + "' is not configured in the roster rules for this auction. Valid categories: " + String.join(", ", validCategories));
+            }
+
+            String finalCategory = (matchedCategory != null) ? matchedCategory : request.getCategory();
+
+            AuctionPlayer existingAP = auctionPlayerRepository.findByAuctionIdAndPlayerPhoneNumber(auctionId, request.getPhoneNumber().trim()).orElse(null);
             
-            Optional<AuctionPlayer> existingAP = auctionPlayerRepository.findByAuctionIdAndPlayerId(auctionId, player.getId());
-            if (existingAP.isEmpty()) {
+            if (existingAP != null) {
+                player = existingAP.getPlayer();
+                player.setName(request.getName());
+                player.setPhoneNumber(request.getPhoneNumber().trim());
+                if (request.getEmail() != null) player.setEmail(request.getEmail());
+                player.setCategory(finalCategory);
+                player.setGender(request.getGender() != null ? request.getGender() : finalCategory);
+                if (request.getAge() != null) player.setAge(request.getAge());
+                if (request.getCity() != null) player.setCity(request.getCity());
+                if (request.getState() != null) player.setState(request.getState());
+                if (request.getSkillLevel() != null) player.setSkillLevel(request.getSkillLevel());
+                if (request.getPhotoPath() != null) player.setPhotoPath(processPhotoPath(request.getPhotoPath()));
+                if (request.getClub() != null) player.setClub(request.getClub());
+                player = playerRepository.save(player);
+            } else {
+                player = Player.builder()
+                        .name(request.getName())
+                        .phoneNumber(request.getPhoneNumber().trim())
+                        .email(request.getEmail())
+                        .gender(request.getGender() != null ? request.getGender() : finalCategory)
+                        .age(request.getAge())
+                        .category(finalCategory)
+                        .city(request.getCity())
+                        .state(request.getState())
+                        .skillLevel(request.getSkillLevel())
+                        .photoPath(processPhotoPath(request.getPhotoPath()))
+                        .club(request.getClub())
+                        .build();
+                player = playerRepository.save(player);
+
                 AuctionPlayer ap = AuctionPlayer.builder()
                         .auction(auction)
                         .player(player)
@@ -447,6 +494,38 @@ public class PlayerService {
                         .status(PlayerStatus.Available)
                         .build();
                 auctionPlayerRepository.save(ap);
+            }
+        } else {
+            Optional<Player> existingPhone = playerRepository.findByPhoneNumber(request.getPhoneNumber().trim());
+            if (existingPhone.isPresent()) {
+                player = existingPhone.get();
+                player.setName(request.getName());
+                player.setPhoneNumber(request.getPhoneNumber().trim());
+                if (request.getEmail() != null) player.setEmail(request.getEmail());
+                player.setCategory(request.getCategory());
+                player.setGender(request.getGender() != null ? request.getGender() : request.getCategory());
+                if (request.getAge() != null) player.setAge(request.getAge());
+                if (request.getCity() != null) player.setCity(request.getCity());
+                if (request.getState() != null) player.setState(request.getState());
+                if (request.getSkillLevel() != null) player.setSkillLevel(request.getSkillLevel());
+                if (request.getPhotoPath() != null) player.setPhotoPath(processPhotoPath(request.getPhotoPath()));
+                if (request.getClub() != null) player.setClub(request.getClub());
+                player = playerRepository.save(player);
+            } else {
+                player = Player.builder()
+                        .name(request.getName())
+                        .phoneNumber(request.getPhoneNumber().trim())
+                        .email(request.getEmail())
+                        .gender(request.getGender() != null ? request.getGender() : request.getCategory())
+                        .age(request.getAge())
+                        .category(request.getCategory())
+                        .city(request.getCity())
+                        .state(request.getState())
+                        .skillLevel(request.getSkillLevel())
+                        .photoPath(processPhotoPath(request.getPhotoPath()))
+                        .club(request.getClub())
+                        .build();
+                player = playerRepository.save(player);
             }
         }
 
@@ -513,15 +592,16 @@ public class PlayerService {
         // Check category limit
         String category = ap.getPlayer().getCategory();
         if (category != null && auction.getRosterRules() != null) {
+            String normCategory = category.replaceAll("\\s+", " ").trim();
             Optional<RosterRule> ruleOpt = auction.getRosterRules().stream()
-                    .filter(r -> r.getCategory() != null && r.getCategory().equalsIgnoreCase(category.trim()))
+                    .filter(r -> r.getCategory() != null && r.getCategory().replaceAll("\\s+", " ").trim().equalsIgnoreCase(normCategory))
                     .findFirst();
 
             if (ruleOpt.isPresent()) {
                 RosterRule rule = ruleOpt.get();
                 if (rule.getMaxRetentionLimit() > 0) {
                     long currentCategoryRetained = auctionPlayerRepository.findByTeamId(teamId).stream()
-                            .filter(p -> p.isRetained() && p.getPlayer().getCategory() != null && p.getPlayer().getCategory().equalsIgnoreCase(category.trim()))
+                            .filter(p -> p.isRetained() && p.getPlayer().getCategory() != null && p.getPlayer().getCategory().replaceAll("\\s+", " ").trim().equalsIgnoreCase(normCategory))
                             .count();
                     if (currentCategoryRetained >= rule.getMaxRetentionLimit()) {
                         throw new IllegalArgumentException("Team has already reached the retention limit of " + rule.getMaxRetentionLimit() + " player(s) for category " + rule.getCategory() + ".");

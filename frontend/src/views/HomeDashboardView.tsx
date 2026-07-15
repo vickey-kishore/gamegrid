@@ -32,7 +32,7 @@ interface Auction {
   minimumBid: number;
   bidIncrement: number;
   maximumBid: number | null;
-  status: 'Draft' | 'Active' | 'Completed' | 'Cancelled';
+  status: 'Draft' | 'Active' | 'Live' | 'Completed' | 'Cancelled';
 }
 
 interface HomeDashboardViewProps {
@@ -194,8 +194,10 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = (props) => {
         return { bg: 'rgba(22, 224, 255, 0.1)', text: '#16E0FF', border: '1px solid rgba(22, 224, 255, 0.2)' };
       case 'auction active':
         return { bg: 'rgba(255, 10, 136, 0.1)', text: '#FF0A88', border: '1px solid rgba(255, 10, 136, 0.2)' };
+      case 'live':
+        return { bg: 'rgba(245, 158, 11, 0.1)', text: '#F59E0B', border: '1px solid rgba(245, 158, 11, 0.2)' };
       case 'completed':
-        return { bg: 'rgba(168, 85, 247, 0.1)', text: '#a855f7', border: '1px solid rgba(168, 85, 247, 0.2)' };
+        return { bg: 'rgba(16, 185, 129, 0.1)', text: '#10B981', border: '1px solid rgba(16, 185, 129, 0.2)' };
       case 'cancelled':
         return { bg: 'rgba(239, 68, 68, 0.1)', text: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)' };
       default:
@@ -414,7 +416,7 @@ export const HomeDashboardView: React.FC<HomeDashboardViewProps> = (props) => {
                 </Grid>
               ) : (
                 auctions.map(auc => {
-                  const statusInfo = getStatusColor(auc.status === 'Active' ? 'auction active' : 'draft');
+                  const statusInfo = getStatusColor(auc.status === 'Active' ? 'auction active' : auc.status === 'Live' ? 'live' : auc.status === 'Completed' ? 'completed' : 'draft');
                   return (
                     <Grid size={{ xs: 12 }} key={auc.id}>
                       <Card sx={{ '&:hover': { borderColor: '#FF0A88' } }}>

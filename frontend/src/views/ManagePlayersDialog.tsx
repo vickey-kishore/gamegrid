@@ -5,7 +5,7 @@ import {
   Paper, IconButton, TextField, Box, Typography, MenuItem, Select,
   FormControl, InputLabel, CircularProgress, Tooltip, Grid, InputAdornment
 } from '@mui/material';
-import { Edit2, Trash2, Search, UserPlus, X, RefreshCw, User, Lock, Unlock, Award } from 'lucide-react';
+import { Edit2, Trash2, Search, UserPlus, X, RefreshCw, User, Lock, Unlock, Award, Download } from 'lucide-react';
 import { api, ASSET_BASE_URL } from '../api';
 
 interface ManagePlayersDialogProps {
@@ -60,7 +60,6 @@ export const ManagePlayersDialog: React.FC<ManagePlayersDialogProps> = ({
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
   const [playerCategory, setPlayerCategory] = useState('');
-  const [gender, setGender] = useState('');
   const [club, setClub] = useState('');
 
   // Retention States
@@ -71,12 +70,19 @@ export const ManagePlayersDialog: React.FC<ManagePlayersDialogProps> = ({
   const [selectedTeamId, setSelectedTeamId] = useState<number | ''>('');
   const [retentionPrice, setRetentionPrice] = useState<number | ''>('');
 
-  // Extract unique category options from rules
+  // Extract unique category options from rules strictly
   const uniqueCategories = React.useMemo(() => {
     const list = new Set<string>();
     rosterRules?.forEach(r => {
-      if (r.category) list.add(r.category.trim());
+      if (r.category) {
+        list.add(r.category.replace(/\s+/g, ' ').trim());
+      }
     });
+    if (list.size === 0) {
+      list.add("Men");
+      list.add("45+");
+      list.add("U-19 Boys");
+    }
     return Array.from(list);
   }, [rosterRules]);
 
@@ -170,7 +176,6 @@ export const ManagePlayersDialog: React.FC<ManagePlayersDialogProps> = ({
     setPhoneNumber('');
     setEmail('');
     setPlayerCategory(uniqueCategories[0] || '');
-    setGender('');
     setClub('');
     setFormOpen(true);
   };
@@ -181,8 +186,12 @@ export const ManagePlayersDialog: React.FC<ManagePlayersDialogProps> = ({
     setName(ap.name || '');
     setPhoneNumber(ap.phoneNumber || '');
     setEmail(ap.email || '');
-    setPlayerCategory(ap.category || '');
-    setGender(ap.gender || '');
+    
+    // Normalize and match the player's category against uniqueCategories
+    const normalizedPlayerCat = (ap.category || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    const matched = uniqueCategories.find(cat => cat.toLowerCase() === normalizedPlayerCat);
+    
+    setPlayerCategory(matched || ap.category || uniqueCategories[0] || '');
     setClub(ap.club || '');
     setFormOpen(true);
   };
@@ -199,7 +208,7 @@ export const ManagePlayersDialog: React.FC<ManagePlayersDialogProps> = ({
       phoneNumber: phoneNumber.trim(),
       email: email.trim() || null,
       category: playerCategory.trim(),
-      gender: gender.trim() || playerCategory.trim(),
+      gender: playerCategory.trim(),
       age: null,
       city: null,
       state: null,
@@ -224,6 +233,22 @@ export const ManagePlayersDialog: React.FC<ManagePlayersDialogProps> = ({
     }
   };
 
+  const handleClearAuctionPool = async () => {
+    if (!window.confirm("Are you sure you want to remove ALL players from this auction? This will clear all registered players, reset all team retention budgets, and cannot be undone.")) {
+      return;
+    }
+
+    try {
+      await api.delete(`/auctions/${auctionId}/players`);
+      alert("All players successfully removed from this auction.");
+      fetchAuctionPlayers();
+      fetchAuctionTeams();
+    } catch (err: any) {
+      console.error(err);
+      alert(err.response?.data?.message || "Failed to clear players pool.");
+    }
+  };
+
   const handleRemovePlayer = async (playerId: number, playerName: string) => {
     if (!window.confirm(`Are you sure you want to remove ${playerName} from this auction?`)) {
       return;
@@ -239,13 +264,193 @@ export const ManagePlayersDialog: React.FC<ManagePlayersDialogProps> = ({
     }
   };
 
+  const handleDownloadPDF = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert("Please allow popups to download the players list PDF.");
+      return;
+    }
+
+    const formattedDate = new Date().toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    const rowsHtml = filteredPlayers.map((ap, index) => `
+      <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center;">${index + 1}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">${ap.name}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center;">${ap.category}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center;">${ap.club || '—'}</td>
+      </tr>
+    `).join('');
+
+    const htmlContent = `
+      <html>
+        <head>
+          <title>${auctionName} - Players List</title>
+          <style>
+            body {
+              font-family: 'Inter', sans-serif;
+              color: #333;
+              margin: 0;
+            }
+            .page-wrapper-table {
+              width: 100%;
+              border-collapse: collapse;
+              border: none;
+            }
+            .page-header-space {
+              height: 1.6cm; /* Professional top margin space */
+            }
+            .page-footer-space {
+              height: 1.6cm; /* Professional bottom margin space */
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 30px;
+              border-bottom: 2px solid #333;
+              padding-bottom: 15px;
+            }
+            .header h1 {
+              margin: 0;
+              font-size: 24px;
+              color: #111;
+            }
+            .header p {
+              margin: 5px 0 0 0;
+              font-size: 14px;
+              color: #666;
+            }
+            .players-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 10px;
+            }
+            .players-table th {
+              background-color: #f5f5f5;
+              padding: 12px 10px;
+              border-bottom: 2px solid #ddd;
+              font-weight: bold;
+              text-align: center;
+              font-size: 14px;
+            }
+            .players-table td {
+              font-size: 14px;
+            }
+            .print-date {
+              position: fixed;
+              top: 0.8cm;
+              left: 1.6cm;
+              font-size: 10px;
+              color: #777;
+              display: none;
+            }
+            .print-watermark {
+              position: fixed;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%) rotate(-40deg);
+              font-size: 72px;
+              font-family: 'Rajdhani', 'Inter', sans-serif;
+              font-weight: 900;
+              text-transform: uppercase;
+              letter-spacing: 4px;
+              color: rgba(0, 0, 0, 0.04); /* Light, professional watermark */
+              white-space: nowrap;
+              z-index: -1000;
+              pointer-events: none;
+              display: none;
+            }
+            @media print {
+              @page {
+                size: auto;
+                margin: 0; /* Suppress browser headers and footers */
+              }
+              body {
+                margin: 0 1.6cm; /* Professional left and right margins */
+              }
+              .print-date {
+                display: block;
+              }
+              .print-watermark {
+                display: block;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="print-watermark">
+            Game Grid
+          </div>
+          <div class="print-date">
+            Date: ${formattedDate}
+          </div>
+          
+          <table class="page-wrapper-table">
+            <thead>
+              <tr>
+                <td>
+                  <div class="page-header-space"></div>
+                </td>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <div class="header">
+                    <h1>${auctionName}</h1>
+                    <p>Official Players Registry Pool List</p>
+                  </div>
+                  
+                  <table class="players-table">
+                    <thead>
+                      <tr>
+                        <th style="width: 80px;">S.No</th>
+                        <th style="text-align: left;">Player Name</th>
+                        <th style="width: 180px;">Category</th>
+                        <th style="width: 180px;">Club</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${rowsHtml}
+                    </tbody>
+                  </table>
+                </td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <td>
+                  <div class="page-footer-space"></div>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(function() { window.close(); }, 500);
+            };
+          </script>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
+
   const filteredPlayers = players.filter(p => {
     const matchesSearch =
       (p.name?.toLowerCase().includes(search.toLowerCase())) ||
       (p.phoneNumber?.includes(search)) ||
       (p.email?.toLowerCase().includes(search.toLowerCase()));
 
-    const matchesCat = filterCategory === 'ALL' || p.category?.trim().toLowerCase() === filterCategory.trim().toLowerCase();
+    const matchesCat = filterCategory === 'ALL' || 
+      p.category?.replace(/\s+/g, ' ').trim().toLowerCase() === filterCategory.replace(/\s+/g, ' ').trim().toLowerCase();
 
     return matchesSearch && matchesCat;
   });
@@ -267,53 +472,88 @@ export const ManagePlayersDialog: React.FC<ManagePlayersDialogProps> = ({
       </DialogTitle>
 
       <DialogContent sx={{ mt: 2, px: 3 }}>
-        <Box sx={{ display: 'flex', gap: 2, mb: 3, mt: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-          <TextField
-            label="Search Players"
-            placeholder="Name, phone or email..."
-            size="small"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search size={18} style={{ color: '#94a3b8' }} />
-                  </InputAdornment>
-                )
-              }
-            }}
-            sx={{ flexGrow: 1, minWidth: '240px' }}
-          />
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1.5, mb: 3, mt: 1, flexWrap: { xs: 'wrap', md: 'nowrap' } }}>
+          {/* Left Side: Search & Filter */}
+          <Box sx={{ display: 'flex', gap: 1.5, flex: 1, alignItems: 'center', minWidth: { xs: '100%', md: 'auto' } }}>
+            <TextField
+              label="Search Players"
+              placeholder="Name, phone or email..."
+              size="small"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Search size={16} style={{ color: '#94a3b8' }} />
+                    </InputAdornment>
+                  )
+                }
+              }}
+              sx={{ width: '220px' }}
+            />
 
-          <FormControl size="small" sx={{ minWidth: '180px' }}>
-            <InputLabel>Filter Category</InputLabel>
-            <Select
-              value={filterCategory}
-              label="Filter Category"
-              onChange={(e) => setFilterCategory(e.target.value)}
-            >
-              <MenuItem value="ALL">All Categories</MenuItem>
-              {uniqueCategories.map(cat => (
-                <MenuItem key={cat} value={cat}>{cat}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+            <FormControl size="small" sx={{ width: '160px' }}>
+              <InputLabel>Filter Category</InputLabel>
+              <Select
+                value={filterCategory}
+                label="Filter Category"
+                onChange={(e) => setFilterCategory(e.target.value)}
+              >
+                <MenuItem value="ALL">All Categories</MenuItem>
+                {uniqueCategories.map(cat => (
+                  <MenuItem key={cat} value={cat}>{cat}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
 
-          {status === 'Draft' && (
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<UserPlus size={18} />}
-              onClick={handleOpenAddForm}
-            >
-              Add Player Manually
-            </Button>
-          )}
+          {/* Right Side: Action Buttons */}
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', minWidth: { xs: '100%', md: 'auto' }, justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
+            {status === 'Draft' && (
+              <>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  size="small"
+                  startIcon={<UserPlus size={16} />}
+                  onClick={handleOpenAddForm}
+                  sx={{ py: 0.8 }}
+                >
+                  Add Player
+                </Button>
+                {players.length > 0 && (
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    size="small"
+                    startIcon={<Trash2 size={16} />}
+                    onClick={handleClearAuctionPool}
+                    sx={{ py: 0.8, borderColor: 'rgba(239, 68, 68, 0.4)', '&:hover': { borderColor: '#ef4444', bgcolor: 'rgba(239, 68, 68, 0.05)' } }}
+                  >
+                    Clear Pool
+                  </Button>
+                )}
+              </>
+            )}
 
-          <IconButton onClick={fetchAuctionPlayers} color="inherit" title="Refresh List">
-            <RefreshCw size={18} />
-          </IconButton>
+            {players.length > 0 && (
+              <Button
+                variant="outlined"
+                color="primary"
+                size="small"
+                startIcon={<Download size={16} />}
+                onClick={handleDownloadPDF}
+                sx={{ py: 0.8 }}
+              >
+                PDF
+              </Button>
+            )}
+
+            <IconButton onClick={fetchAuctionPlayers} color="inherit" size="small" title="Refresh List" sx={{ p: 1, bgcolor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <RefreshCw size={16} />
+            </IconButton>
+          </Box>
         </Box>
 
         {loading ? (
@@ -472,15 +712,6 @@ export const ManagePlayersDialog: React.FC<ManagePlayersDialogProps> = ({
                     ))}
                   </Select>
                 </FormControl>
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <TextField
-                  label="Gender"
-                  placeholder="e.g. Men, Women"
-                  fullWidth
-                  value={gender}
-                  onChange={(e) => setGender(e.target.value)}
-                />
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField

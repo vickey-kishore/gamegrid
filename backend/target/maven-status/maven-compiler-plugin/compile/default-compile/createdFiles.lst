@@ -17,6 +17,7 @@ com\gamegrid\auction\dto\UnsoldRequest$UnsoldRequestBuilder.class
 com\gamegrid\auction\tournament\repository\TournamentRepository.class
 com\gamegrid\auction\dto\AuctionPlayerResponse.class
 com\gamegrid\auction\tournament\dto\EventRequest$EventRequestBuilder.class
+com\gamegrid\auction\entity\AuctionEventCategory.class
 com\gamegrid\auction\tournament\repository\EventParticipantRepository.class
 com\gamegrid\auction\entity\RosterRulesConverter$1.class
 com\gamegrid\auction\tournament\repository\TournamentEventRepository.class
@@ -24,6 +25,7 @@ com\gamegrid\auction\tournament\entity\TournamentEvent.class
 com\gamegrid\auction\entity\PlayerStatus.class
 com\gamegrid\auction\dto\RosterPlayerDto.class
 com\gamegrid\auction\AuctionApplication.class
+com\gamegrid\auction\repository\AuctionEventCategoryRepository.class
 com\gamegrid\auction\fixture\entity\FixtureMatch$FixtureMatchBuilder.class
 com\gamegrid\auction\entity\Bid$BidBuilder.class
 com\gamegrid\auction\dto\AuctionRequest$AuctionRequestBuilder.class
@@ -34,6 +36,7 @@ com\gamegrid\auction\service\AuctionService.class
 com\gamegrid\auction\dto\BidRequest$BidRequestBuilder.class
 com\gamegrid\auction\dto\RosterPlayerDto$RosterPlayerDtoBuilder.class
 com\gamegrid\auction\dto\TeamRosterDto$TeamRosterDtoBuilder.class
+com\gamegrid\auction\entity\AuctionEventCategory$AuctionEventCategoryBuilder.class
 com\gamegrid\auction\dto\PlayerRequest.class
 com\gamegrid\auction\repository\AuctionPlayerRepository.class
 com\gamegrid\auction\entity\RosterRule.class
@@ -50,6 +53,7 @@ com\gamegrid\auction\fixture\service\FixtureService.class
 com\gamegrid\auction\config\WebConfig.class
 com\gamegrid\auction\dto\AuctionRequest.class
 com\gamegrid\auction\tournament\dto\ParticipantRegistrationRequest.class
+com\gamegrid\auction\entity\RosterCategoryConstraint.class
 com\gamegrid\auction\tournament\dto\EventResponse.class
 com\gamegrid\auction\dto\UnsoldRequest.class
 com\gamegrid\auction\repository\AuctionRepository.class
@@ -79,13 +83,16 @@ com\gamegrid\auction\tournament\entity\Tournament$TournamentBuilder.class
 com\gamegrid\auction\dto\PlayerImportResult$PlayerImportResultBuilder.class
 com\gamegrid\auction\dto\TeamRosterDto.class
 com\gamegrid\auction\entity\AuctionPlayer$AuctionPlayerBuilder.class
+com\gamegrid\auction\controller\OptionsController.class
 com\gamegrid\auction\tournament\service\TournamentService.class
 com\gamegrid\auction\dto\TeamConfig.class
 com\gamegrid\auction\config\FlywayConfig.class
 com\gamegrid\auction\dto\BidResponse$BidResponseBuilder.class
 com\gamegrid\auction\fixture\generator\LeagueFixtureGenerator.class
+com\gamegrid\auction\repository\RosterCategoryConstraintRepository.class
 com\gamegrid\auction\dto\BidResponse.class
 com\gamegrid\auction\entity\AuctionTeam$AuctionTeamBuilder.class
+com\gamegrid\auction\entity\RosterCategoryConstraint$RosterCategoryConstraintBuilder.class
 com\gamegrid\auction\controller\AuthController.class
 com\gamegrid\auction\tournament\dto\TournamentResponse$TournamentResponseBuilder.class
 com\gamegrid\auction\entity\Auction.class

@@ -1,7 +1,11 @@
 package com.gamegrid.auction.config;
 
 import com.gamegrid.auction.entity.Player;
+import com.gamegrid.auction.entity.AuctionEventCategory;
+import com.gamegrid.auction.entity.RosterCategoryConstraint;
 import com.gamegrid.auction.repository.PlayerRepository;
+import com.gamegrid.auction.repository.AuctionEventCategoryRepository;
+import com.gamegrid.auction.repository.RosterCategoryConstraintRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Configuration;
@@ -12,9 +16,42 @@ import java.util.List;
 public class SeedDataConfig implements CommandLineRunner {
 
     private final PlayerRepository playerRepository;
+    private final AuctionEventCategoryRepository auctionEventCategoryRepository;
+    private final RosterCategoryConstraintRepository rosterCategoryConstraintRepository;
 
     @Override
     public void run(String... args) {
+        // Seed option lists
+        if (auctionEventCategoryRepository.count() == 0) {
+            List<AuctionEventCategory> events = List.of(
+                AuctionEventCategory.builder().name("Men Doubles").build(),
+                AuctionEventCategory.builder().name("Reverse Men Doubles").build(),
+                AuctionEventCategory.builder().name("Veteran Doubles").build(),
+                AuctionEventCategory.builder().name("Jumbled Doubles").build(),
+                AuctionEventCategory.builder().name("Mixed Doubles").build(),
+                AuctionEventCategory.builder().name("Under 17 Boys Singles").build(),
+                AuctionEventCategory.builder().name("Under 17 Boys Doubles").build(),
+                AuctionEventCategory.builder().name("Under 19 Singles Singles").build(),
+                AuctionEventCategory.builder().name("Under 19 Boys Doubles").build(),
+                AuctionEventCategory.builder().name("Women Doubles").build()
+            );
+            auctionEventCategoryRepository.saveAll(events);
+        }
+
+        if (rosterCategoryConstraintRepository.count() == 0) {
+            List<RosterCategoryConstraint> rules = List.of(
+                RosterCategoryConstraint.builder().name("Men").build(),
+                RosterCategoryConstraint.builder().name("Women").build(),
+                RosterCategoryConstraint.builder().name("45+").build(),
+                RosterCategoryConstraint.builder().name("35+").build(),
+                RosterCategoryConstraint.builder().name("U-17 Boys").build(),
+                RosterCategoryConstraint.builder().name("U-19 Boys").build(),
+                RosterCategoryConstraint.builder().name("U-19 Girls").build(),
+                RosterCategoryConstraint.builder().name("U-17 Girls").build()
+            );
+            rosterCategoryConstraintRepository.saveAll(rules);
+        }
+
         if (playerRepository.count() > 0) {
             return; // Seed only if empty
         }

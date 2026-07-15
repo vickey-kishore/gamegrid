@@ -3,9 +3,10 @@ import {
   Box, Card, CardContent, Typography, Button, TextField, Divider,
   IconButton, Alert, CircularProgress, Grid, Paper, FormControlLabel, Switch,
   Dialog, DialogTitle, DialogContent, DialogActions,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Select, MenuItem, FormControl, InputLabel
 } from '@mui/material';
-import { ArrowLeft, Save, Plus, Trash2, Upload, AlertCircle, Maximize2 } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, Upload, AlertCircle, Maximize2, X } from 'lucide-react';
 import { api, ASSET_BASE_URL } from '../api';
 
 interface TeamConfig {
@@ -14,7 +15,7 @@ interface TeamConfig {
   logoPath: string | null;
   purseAmount: number;
   minimumPlayers: number;
-  maximumPlayers: number;
+  maximumPlayers: number | '';
 }
 
 const replaceBold = (text: string): React.ReactNode => {
@@ -34,33 +35,34 @@ const parseMarkdownToJSX = (text: string): React.ReactNode[] => {
     const line = rawLines[i];
     const trimmed = line.trim();
 
-    // Check if this line starts a table
-    if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+    // Robust Table Detection
+    if (trimmed.includes('|') && i + 1 < rawLines.length && rawLines[i+1].trim().includes('|') && /^[\s-:|]+$/.test(rawLines[i+1].trim().replace(/[a-zA-Z0-9]/g, ''))) {
       const tableLines: string[] = [];
-      while (i < rawLines.length && rawLines[i].trim().startsWith('|')) {
+      while (i < rawLines.length && rawLines[i].trim().includes('|')) {
         tableLines.push(rawLines[i].trim());
         i++;
       }
-
-      if (tableLines.length >= 1) {
+      
+      if (tableLines.length >= 2) {
         const parseRow = (rowStr: string) => {
-          const cells = rowStr.split('|').map(c => c.trim());
-          if (cells.length > 2) {
-            return cells.slice(1, cells.length - 1);
-          }
-          return [];
+          let cleaned = rowStr;
+          if (cleaned.startsWith('|')) cleaned = cleaned.substring(1);
+          if (cleaned.endsWith('|')) cleaned = cleaned.substring(0, cleaned.length - 1);
+          return cleaned.split('|').map(c => c.trim());
         };
 
         const headers = parseRow(tableLines[0]);
-        const hasSeparator = tableLines.length > 1 && /^\|[\s-:|]*\|$/.test(tableLines[1]);
-        const dataRowsStart = hasSeparator ? 2 : 1;
+        const separatorRow = parseRow(tableLines[1]);
+        const isSeparator = separatorRow.every(cell => /^[\s-:]+$/.test(cell));
+        const dataRowsStart = isSeparator ? 2 : 1;
 
         const rows: string[][] = [];
         for (let r = dataRowsStart; r < tableLines.length; r++) {
           const cells = parseRow(tableLines[r]);
-          if (cells.length > 0) {
-            rows.push(cells);
+          while (cells.length < headers.length) {
+            cells.push('');
           }
+          rows.push(cells.slice(0, headers.length));
         }
 
         elements.push(
@@ -182,8 +184,57 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
   const [events, setEvents] = useState<string[]>(['']);
   const [auctionDate, setAuctionDate] = useState('');
   const [description, setDescription] = useState('');
-  const descriptionRef = React.useRef<HTMLTextAreaElement | null>(null);
   const [focusModeOpen, setFocusModeOpen] = useState(false);
+  const descriptionRef = React.useRef<HTMLTextAreaElement | null>(null);
+
+  // Table Builder State
+  const [tableBuilderOpen, setTableBuilderOpen] = useState(false);
+  const [tableRows, setTableRows] = useState<string[][]>([
+    ['Category', 'Playing', 'Reserve'],
+    ["Men's", '5', '1'],
+    ['Veteran (40+)', '3', '1'],
+    ['Boys (U-19)', '2', '1']
+  ]);
+
+  const handleCellChange = (rIdx: number, cIdx: number, val: string) => {
+    const updated = tableRows.map((row, r) => 
+      row.map((cell, c) => (r === rIdx && c === cIdx ? val : cell))
+    );
+    setTableRows(updated);
+  };
+
+  const handleAddRow = () => {
+    const colCount = tableRows[0]?.length || 3;
+    setTableRows([...tableRows, Array(colCount).fill('')]);
+  };
+
+  const handleRemoveRow = (rIdx: number) => {
+    if (tableRows.length <= 2) return;
+    setTableRows(tableRows.filter((_, idx) => idx !== rIdx));
+  };
+
+  const handleAddColumn = () => {
+    setTableRows(tableRows.map(row => [...row, '']));
+  };
+
+  const handleRemoveColumn = (cIdx: number) => {
+    if (tableRows[0].length <= 1) return;
+    setTableRows(tableRows.map(row => row.filter((_, idx) => idx !== cIdx)));
+  };
+
+  const generateMarkdownTable = () => {
+    if (tableRows.length === 0) return '';
+    const headerRow = `| ${tableRows[0].join(' | ')} |`;
+    const separatorRow = `| ${tableRows[0].map(() => '---').join(' | ')} |`;
+    const dataRows = tableRows.slice(1).map(row => `| ${row.join(' | ')} |`).join('\n');
+    return `\n${headerRow}\n${separatorRow}\n${dataRows}\n`;
+  };
+
+  const handleInsertTableSubmit = () => {
+    const generatedMarkdown = generateMarkdownTable();
+    handleInsertMarkup(generatedMarkdown);
+    setTableBuilderOpen(false);
+  };
   const [minimumBid, setMinimumBid] = useState<number>(1000);
   const [bidIncrement, setBidIncrement] = useState<number>(500);
   const [maximumBid, setMaximumBid] = useState<number | ''>('');
@@ -192,13 +243,47 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
   const [maxRetainedPlayers, setMaxRetainedPlayers] = useState<number>(0);
 
   const [teams, setTeams] = useState<TeamConfig[]>([
-    { teamName: 'Team A', logoPath: null, purseAmount: 100000, minimumPlayers: 8, maximumPlayers: 12 },
-    { teamName: 'Team B', logoPath: null, purseAmount: 100000, minimumPlayers: 8, maximumPlayers: 12 }
+    { teamName: 'Team A', logoPath: null, purseAmount: 100000, minimumPlayers: 8, maximumPlayers: '' },
+    { teamName: 'Team B', logoPath: null, purseAmount: 100000, minimumPlayers: 8, maximumPlayers: '' }
   ]);
+
+  // Common franchise settings
+  const [commonPurse, setCommonPurse] = useState<number>(100000);
+  const [commonMinPlayers, setCommonMinPlayers] = useState<number>(8);
+
+  const handleCommonPurseChange = (val: number) => {
+    setCommonPurse(val);
+    setTeams(prev => prev.map(t => ({ ...t, purseAmount: val })));
+  };
+
+  const handleCommonMinPlayersChange = (val: number) => {
+    setCommonMinPlayers(val);
+    setTeams(prev => prev.map(t => ({ ...t, minimumPlayers: val })));
+  };
 
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [dbEvents, setDbEvents] = useState<string[]>([]);
+  const [dbRosterCategories, setDbRosterCategories] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchDropdownOptions = async () => {
+      try {
+        const eventsRes = await api.get('/options/events');
+        setDbEvents(eventsRes.data || []);
+      } catch (err) {
+        console.error('Failed to load event options:', err);
+      }
+      try {
+        const rulesRes = await api.get('/options/roster-categories');
+        setDbRosterCategories(rulesRes.data || []);
+      } catch (err) {
+        console.error('Failed to load roster categories:', err);
+      }
+    };
+    fetchDropdownOptions();
+  }, []);
 
   useEffect(() => {
     if (isEdit) {
@@ -222,7 +307,17 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
       setRosterRules(data.rosterRules || []);
       setAllowRetention(data.allowRetention || false);
       setMaxRetainedPlayers(data.maxRetainedPlayers || 0);
-      setTeams(data.teams);
+      
+      if (data.teams && data.teams.length > 0) {
+        setCommonPurse(data.teams[0].purseAmount);
+        setCommonMinPlayers(data.teams[0].minimumPlayers);
+        
+        const formattedTeams = data.teams.map((t: any) => ({
+          ...t,
+          maximumPlayers: (t.maximumPlayers === 99 || t.maximumPlayers === 999) ? '' : t.maximumPlayers
+        }));
+        setTeams(formattedTeams);
+      }
     } catch (err: any) {
       console.error(err);
       setErrorMessage('Failed to load auction configuration details.');
@@ -307,9 +402,9 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
     setTeams([...teams, {
       teamName: `Team ${String.fromCharCode(65 + teams.length)}`,
       logoPath: null,
-      purseAmount: 100000,
-      minimumPlayers: 8,
-      maximumPlayers: 12
+      purseAmount: commonPurse,
+      minimumPlayers: commonMinPlayers,
+      maximumPlayers: ''
     }]);
   };
 
@@ -414,7 +509,10 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
       minimumBid,
       bidIncrement,
       maximumBid: maximumBid === '' ? null : maximumBid,
-      teams
+      teams: teams.map(t => ({
+        ...t,
+        maximumPlayers: t.maximumPlayers === '' ? 99 : Number(t.maximumPlayers)
+      }))
     };
 
     try {
@@ -483,38 +581,61 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
                 />
 
 
-                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, my: 1 }}>
-                  <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>Auction Events (Categories)</Typography>
-                  {events.map((evt, idx) => (
-                    <Box key={idx} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                      <TextField
-                        label={`Event Category #${idx + 1}`}
-                        required
-                        fullWidth
-                        variant="outlined"
-                        value={evt}
-                        onChange={(e) => handleEventChange(idx, e.target.value)}
-                        placeholder="e.g. Men Doubles, Women Doubles, Mixed Doubles"
-                        size="small"
-                      />
-                      {events.length > 1 && (
-                        <IconButton color="error" size="small" onClick={() => handleRemoveEvent(idx)}>
-                          <Trash2 size={16} />
-                        </IconButton>
-                      )}
-                    </Box>
-                  ))}
-                  <Button
-                    variant="outlined"
-                    color="primary"
-                    size="small"
-                    startIcon={<Plus size={14} />}
-                    onClick={handleAddEvent}
-                    sx={{ alignSelf: 'flex-start' }}
-                  >
-                    Add Event
-                  </Button>
-                </Box>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, my: 1 }}>
+                   <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>Auction Events (Categories)</Typography>
+                   {events.map((evt, idx) => {
+                     const fallbackEvents = [
+                       "Men Doubles",
+                       "Reverse Men Doubles",
+                       "Veteran Doubles",
+                       "Jumbled Doubles",
+                       "Mixed Doubles",
+                       "Under 17 Boys Singles",
+                       "Under 17 Boys Doubles",
+                       "Under 19 Singles Singles",
+                       "Under 19 Boys Doubles",
+                       "Women Doubles"
+                     ];
+                     const eventsList = [...dbEvents.length > 0 ? dbEvents : fallbackEvents];
+                     if (evt && !eventsList.includes(evt)) {
+                       eventsList.push(evt);
+                     }
+                     return (
+                       <Box key={idx} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                         <FormControl fullWidth size="small" required>
+                           <InputLabel id={`event-select-label-${idx}`}>Event Category #{idx + 1}</InputLabel>
+                           <Select
+                             labelId={`event-select-label-${idx}`}
+                             value={evt}
+                             label={`Event Category #${idx + 1}`}
+                             onChange={(e) => handleEventChange(idx, e.target.value)}
+                           >
+                             {eventsList.map((dbEvt) => (
+                               <MenuItem key={dbEvt} value={dbEvt}>
+                                 {dbEvt}
+                               </MenuItem>
+                             ))}
+                           </Select>
+                         </FormControl>
+                         {events.length > 1 && (
+                           <IconButton color="error" size="small" onClick={() => handleRemoveEvent(idx)}>
+                             <Trash2 size={16} />
+                           </IconButton>
+                         )}
+                       </Box>
+                     );
+                   })}
+                   <Button
+                     variant="outlined"
+                     color="primary"
+                     size="small"
+                     startIcon={<Plus size={14} />}
+                     onClick={handleAddEvent}
+                     sx={{ alignSelf: 'flex-start' }}
+                   >
+                     Add Event
+                   </Button>
+                 </Box>
 
                 <TextField
                   label="Auction Date"
@@ -564,7 +685,7 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
                     <Button size="small" variant="outlined" color="inherit" onClick={() => handleInsertMarkup('sub-bullet')} sx={{ fontSize: '0.72rem', py: 0.3, px: 1, textTransform: 'none', borderColor: 'rgba(255,255,255,0.08)' }}>
                       Sub-bullet
                     </Button>
-                    <Button size="small" variant="outlined" color="inherit" onClick={() => handleInsertMarkup('table')} sx={{ fontSize: '0.72rem', py: 0.3, px: 1, textTransform: 'none', borderColor: 'rgba(255,255,255,0.08)' }}>
+                    <Button size="small" variant="outlined" color="inherit" onClick={() => setTableBuilderOpen(true)} sx={{ fontSize: '0.72rem', py: 0.3, px: 1, textTransform: 'none', borderColor: 'rgba(255,255,255,0.08)' }}>
                       Table
                     </Button>
                     <Button size="small" variant="outlined" color="inherit" onClick={() => handleInsertMarkup('divider')} sx={{ fontSize: '0.72rem', py: 0.3, px: 1, textTransform: 'none', borderColor: 'rgba(255,255,255,0.08)' }}>
@@ -667,57 +788,78 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
                   />
                 )}
 
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, my: 1 }}>
-                  <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>Roster Category Constraints</Typography>
-                  {rosterRules.map((rule, idx) => (
-                    <Box key={idx} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                      <TextField
-                        label="Category"
-                        required
-                        variant="outlined"
-                        value={rule.category}
-                        onChange={(e) => handleRosterRuleChange(idx, 'category', e.target.value)}
-                        placeholder="e.g. Men, Women, 45+, U-19 Boys"
-                        size="small"
-                        sx={{ flexGrow: 2 }}
-                      />
-                      <TextField
-                        label="Min Count"
-                        type="number"
-                        required
-                        variant="outlined"
-                        value={rule.minCount}
-                        onChange={(e) => handleRosterRuleChange(idx, 'minCount', Number(e.target.value))}
-                        size="small"
-                        sx={{ width: '90px' }}
-                      />
-                      {allowRetention && (
-                        <TextField
-                          label="Max Retain"
-                          type="number"
-                          variant="outlined"
-                          value={rule.maxRetentionLimit || 0}
-                          onChange={(e) => handleRosterRuleChange(idx, 'maxRetentionLimit', Number(e.target.value))}
-                          size="small"
-                          sx={{ width: '100px' }}
-                        />
-                      )}
-                      <IconButton color="error" size="small" onClick={() => handleRemoveRosterRule(idx)}>
-                        <Trash2 size={16} />
-                      </IconButton>
-                    </Box>
-                  ))}
-                  <Button
-                    variant="outlined"
-                    color="secondary"
-                    size="small"
-                    startIcon={<Plus size={14} />}
-                    onClick={handleAddRosterRule}
-                    sx={{ alignSelf: 'flex-start' }}
-                  >
-                    Add Constraint
-                  </Button>
-                </Box>
+                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, my: 1 }}>
+                   <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>Roster Category Constraints</Typography>
+                   {rosterRules.map((rule, idx) => {
+                     const fallbackRosterCats = [
+                       "Men",
+                       "Women",
+                       "45+",
+                       "35+",
+                       "U-17 Boys",
+                       "U-19 Boys",
+                       "U-19 Girls",
+                       "U-17 Girls"
+                     ];
+                     const categoriesList = [...dbRosterCategories.length > 0 ? dbRosterCategories : fallbackRosterCats];
+                     if (rule.category && !categoriesList.includes(rule.category)) {
+                       categoriesList.push(rule.category);
+                     }
+                     return (
+                       <Box key={idx} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                         <FormControl size="small" required sx={{ flexGrow: 2, minWidth: '150px' }}>
+                           <InputLabel id={`roster-cat-label-${idx}`}>Category</InputLabel>
+                           <Select
+                             labelId={`roster-cat-label-${idx}`}
+                             value={rule.category}
+                             label="Category"
+                             onChange={(e) => handleRosterRuleChange(idx, 'category', e.target.value)}
+                           >
+                             {categoriesList.map((cat) => (
+                               <MenuItem key={cat} value={cat}>
+                                 {cat}
+                               </MenuItem>
+                             ))}
+                           </Select>
+                         </FormControl>
+                         <TextField
+                           label="Min Count"
+                           type="number"
+                           required
+                           variant="outlined"
+                           value={rule.minCount}
+                           onChange={(e) => handleRosterRuleChange(idx, 'minCount', Number(e.target.value))}
+                           size="small"
+                           sx={{ width: '90px' }}
+                         />
+                         {allowRetention && (
+                           <TextField
+                             label="Max Retain"
+                             type="number"
+                             variant="outlined"
+                             value={rule.maxRetentionLimit || 0}
+                             onChange={(e) => handleRosterRuleChange(idx, 'maxRetentionLimit', Number(e.target.value))}
+                             size="small"
+                             sx={{ width: '100px' }}
+                           />
+                         )}
+                         <IconButton color="error" size="small" onClick={() => handleRemoveRosterRule(idx)}>
+                           <Trash2 size={16} />
+                         </IconButton>
+                       </Box>
+                     );
+                   })}
+                   <Button
+                     variant="outlined"
+                     color="secondary"
+                     size="small"
+                     startIcon={<Plus size={14} />}
+                     onClick={handleAddRosterRule}
+                     sx={{ alignSelf: 'flex-start' }}
+                   >
+                     Add Constraint
+                   </Button>
+                 </Box>
               </CardContent>
             </Card>
           </Grid>
@@ -741,63 +883,88 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
                 
                 <Divider />
 
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, maxHeight: '550px', overflowY: 'auto', pr: 1, py: 1 }}>
+                {/* Common Team Settings Panel */}
+                <Paper variant="outlined" sx={{ p: 2, mb: 1.5, mt: 1, bgcolor: 'rgba(22, 224, 255, 0.02)', borderColor: 'rgba(22, 224, 255, 0.15)', display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <Typography variant="body2" sx={{ width: '100%', fontWeight: 700, color: 'primary.main', mb: -0.5 }}>
+                    Common Team Settings (Applies to all franchises)
+                  </Typography>
+                  <TextField
+                    label="Purse Amount"
+                    type="number"
+                    size="small"
+                    value={commonPurse}
+                    onChange={(e) => handleCommonPurseChange(Number(e.target.value))}
+                    sx={{ flex: 1, minWidth: '140px' }}
+                  />
+                  <TextField
+                    label="Minimum Players"
+                    type="number"
+                    size="small"
+                    value={commonMinPlayers}
+                    onChange={(e) => handleCommonMinPlayersChange(Number(e.target.value))}
+                    sx={{ flex: 1, minWidth: '140px' }}
+                  />
+                </Paper>
+
+                <Grid container spacing={2} sx={{ maxHeight: '420px', overflowY: 'auto', pr: 1, py: 1 }}>
                   {teams.map((team, index) => (
-                    <Paper
-                      key={index}
-                      variant="outlined"
-                      sx={{
-                        p: 2.5,
-                        backgroundColor: 'rgba(255, 255, 255, 0.01)',
-                        border: '1px solid rgba(255, 255, 255, 0.05)',
-                        position: 'relative'
-                      }}
-                    >
-                      {teams.length > 2 && (
-                        <IconButton
-                          color="error"
-                          size="small"
-                          onClick={() => handleRemoveTeam(index)}
-                          sx={{ position: 'absolute', top: 12, right: 12 }}
-                        >
-                          <Trash2 size={16} />
-                        </IconButton>
-                      )}
-
-                      <Typography variant="h6" color="primary" sx={{ mb: 2 }}>
-                        Team #{index + 1}
-                      </Typography>
-
-                      <Grid container spacing={2} sx={{ alignItems: 'center' }}>
-                        <Grid size={{ xs: 12, sm: 6 }}>
-                          <TextField
-                            label="Team Name"
-                            required
-                            fullWidth
+                    <Grid size={{ xs: 12, sm: 6 }} key={index}>
+                      <Paper
+                        variant="outlined"
+                        sx={{
+                          p: 2,
+                          backgroundColor: 'rgba(255, 255, 255, 0.01)',
+                          border: '1px solid rgba(255, 255, 255, 0.05)',
+                          position: 'relative',
+                          height: '100%',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 1.5
+                        }}
+                      >
+                        {teams.length > 2 && (
+                          <IconButton
+                            color="error"
                             size="small"
-                            value={team.teamName}
-                            onChange={(e) => handleTeamChange(index, 'teamName', e.target.value)}
-                          />
-                        </Grid>
+                            onClick={() => handleRemoveTeam(index)}
+                            sx={{ position: 'absolute', top: 12, right: 12 }}
+                          >
+                            <Trash2 size={16} />
+                          </IconButton>
+                        )}
 
-                        <Grid size={{ xs: 12, sm: 6 }} sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                        <Typography variant="h6" color="primary" sx={{ mb: 0.5, fontWeight: 700, fontFamily: '"Rajdhani", sans-serif' }}>
+                          Team #{index + 1}
+                        </Typography>
+
+                        <TextField
+                          label="Team Name"
+                          required
+                          fullWidth
+                          size="small"
+                          value={team.teamName}
+                          onChange={(e) => handleTeamChange(index, 'teamName', e.target.value)}
+                        />
+
+                        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', justifyContent: 'space-between' }}>
                           {team.logoPath ? (
                             <Box
                               component="img"
                               src={`${ASSET_BASE_URL}/${team.logoPath}`}
                               alt="logo"
-                              sx={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(255, 255, 255, 0.1)' }}
+                              sx={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(255, 255, 255, 0.1)' }}
                             />
                           ) : (
-                            <Box sx={{ width: 40, height: 40, borderRadius: '50%', border: '1px dashed rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <Typography variant="caption" color="text.secondary">Logo</Typography>
+                            <Box sx={{ width: 36, height: 36, borderRadius: '50%', border: '1px dashed rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>Logo</Typography>
                             </Box>
                           )}
                           <Button
                             variant="outlined"
                             size="small"
                             component="label"
-                            startIcon={<Upload size={14} />}
+                            startIcon={<Upload size={12} />}
+                            sx={{ py: 0.5, fontSize: '0.72rem' }}
                           >
                             Upload
                             <input
@@ -807,47 +974,21 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
                               onChange={(e) => handleLogoUpload(index, e)}
                             />
                           </Button>
-                        </Grid>
+                        </Box>
 
-                        <Grid size={{ xs: 12, sm: 4 }}>
-                          <TextField
-                            label="Purse Amount"
-                            type="number"
-                            required
-                            fullWidth
-                            size="small"
-                            value={team.purseAmount}
-                            onChange={(e) => handleTeamChange(index, 'purseAmount', Number(e.target.value))}
-                          />
-                        </Grid>
-
-                        <Grid size={{ xs: 6, sm: 4 }}>
-                          <TextField
-                            label="Min Players"
-                            type="number"
-                            required
-                            fullWidth
-                            size="small"
-                            value={team.minimumPlayers}
-                            onChange={(e) => handleTeamChange(index, 'minimumPlayers', Number(e.target.value))}
-                          />
-                        </Grid>
-
-                        <Grid size={{ xs: 6, sm: 4 }}>
-                          <TextField
-                            label="Max Players"
-                            type="number"
-                            required
-                            fullWidth
-                            size="small"
-                            value={team.maximumPlayers}
-                            onChange={(e) => handleTeamChange(index, 'maximumPlayers', Number(e.target.value))}
-                          />
-                        </Grid>
-                      </Grid>
-                    </Paper>
+                        <TextField
+                          label="Max Players (Optional)"
+                          type="number"
+                          fullWidth
+                          size="small"
+                          value={team.maximumPlayers}
+                          onChange={(e) => handleTeamChange(index, 'maximumPlayers', e.target.value === '' ? '' : Number(e.target.value))}
+                          placeholder="No limit"
+                        />
+                      </Paper>
+                    </Grid>
                   ))}
-                </Box>
+                </Grid>
               </CardContent>
             </Card>
           </Grid>
@@ -899,7 +1040,7 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
                   size="small"
                   variant="outlined"
                   color="inherit"
-                  onClick={() => handleInsertMarkup(type)}
+                  onClick={() => type === 'table' ? setTableBuilderOpen(true) : handleInsertMarkup(type)}
                   sx={{ fontSize: '0.7rem', py: 0.3, px: 1, textTransform: 'none', borderColor: 'rgba(255,255,255,0.08)' }}
                 >
                   {type === 'heading2' ? 'H2' : type === 'heading3' ? 'H3' : type === 'heading4' ? 'H4' : type === 'sub-bullet' ? 'Sub-bullet' : type.charAt(0).toUpperCase() + type.slice(1)}
@@ -996,6 +1137,112 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
         <DialogActions sx={{ borderTop: '1px solid rgba(255,255,255,0.08)', p: 2, justifyContent: 'flex-end' }}>
           <Button onClick={() => setFocusModeOpen(false)} variant="contained" color="primary" sx={{ fontWeight: 'bold', px: 4 }}>
             Apply & Close Editor
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Table Builder Dialog */}
+      <Dialog
+        open={tableBuilderOpen}
+        onClose={() => setTableBuilderOpen(false)}
+        maxWidth="md"
+        fullWidth
+        sx={{
+          '& .MuiDialog-paper': {
+            bgcolor: '#0a0f1d',
+            border: '1px solid rgba(22, 224, 255, 0.15)',
+            backgroundImage: 'none',
+            color: '#ffffff',
+            borderRadius: 3
+          }
+        }}
+      >
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          <Typography variant="h5" sx={{ fontWeight: 800, color: 'primary.main', fontFamily: '"Rajdhani", sans-serif' }}>
+            Interactive Table Builder
+          </Typography>
+          <IconButton onClick={() => setTableBuilderOpen(false)} sx={{ color: 'text.secondary' }}>
+            <X size={20} />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent sx={{ mt: 2 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Modify headers and cell values in the grid below. You can add or remove rows and columns.
+          </Typography>
+
+          <Box sx={{ display: 'flex', gap: 1.5, mb: 3, flexWrap: 'wrap' }}>
+            <Button size="small" variant="outlined" color="primary" onClick={handleAddRow} sx={{ fontSize: '0.8rem', textTransform: 'none' }}>
+              + Add Row
+            </Button>
+            <Button size="small" variant="outlined" color="primary" onClick={handleAddColumn} sx={{ fontSize: '0.8rem', textTransform: 'none' }}>
+              + Add Column
+            </Button>
+          </Box>
+
+          <Box sx={{ overflowX: 'auto', maxHeight: '400px', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 2, p: 2, bgcolor: 'rgba(255,255,255,0.01)' }}>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  {tableRows[0].map((_, cIdx) => (
+                    <TableCell key={cIdx} align="center" sx={{ borderBottom: '2px solid rgba(22,224,255,0.2)', py: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center' }}>
+                        <Typography variant="caption" sx={{ fontWeight: 700, color: 'primary.main' }}>Col #{cIdx + 1}</Typography>
+                        {tableRows[0].length > 1 && (
+                          <IconButton size="small" color="error" onClick={() => handleRemoveColumn(cIdx)} sx={{ p: 0.2 }}>
+                            <Trash2 size={12} />
+                          </IconButton>
+                        )}
+                      </Box>
+                    </TableCell>
+                  ))}
+                  <TableCell sx={{ borderBottom: '2px solid rgba(22,224,255,0.2)', width: '40px' }} />
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {tableRows.map((row, rIdx) => (
+                  <TableRow key={rIdx}>
+                    {row.map((cell, cIdx) => (
+                      <TableCell key={cIdx} sx={{ borderBottom: '1px solid rgba(255,255,255,0.05)', py: 1 }}>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          value={cell}
+                          onChange={(e) => handleCellChange(rIdx, cIdx, e.target.value)}
+                          placeholder={rIdx === 0 ? `Header ${cIdx + 1}` : `Cell ${rIdx}, ${cIdx + 1}`}
+                          slotProps={{
+                            input: {
+                              style: {
+                                fontFamily: rIdx === 0 ? '"Rajdhani", sans-serif' : 'inherit',
+                                fontWeight: rIdx === 0 ? 700 : 'normal',
+                                color: rIdx === 0 ? '#16E0FF' : '#ffffff',
+                                fontSize: '0.88rem'
+                              }
+                            }
+                          }}
+                        />
+                      </TableCell>
+                    ))}
+                    <TableCell sx={{ borderBottom: '1px solid rgba(255,255,255,0.05)', align: 'center', py: 1 }}>
+                      {tableRows.length > 2 && (
+                        <IconButton size="small" color="error" onClick={() => handleRemoveRow(rIdx)}>
+                          <Trash2 size={14} />
+                        </IconButton>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Box>
+        </DialogContent>
+
+        <DialogActions sx={{ px: 3, pb: 3, gap: 1.5 }}>
+          <Button onClick={() => setTableBuilderOpen(false)} variant="outlined" color="inherit">
+            Cancel
+          </Button>
+          <Button onClick={handleInsertTableSubmit} variant="contained" color="secondary">
+            Insert Table
           </Button>
         </DialogActions>
       </Dialog>

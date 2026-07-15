@@ -5,7 +5,7 @@ import {
   Paper, Dialog, DialogTitle, DialogContent, DialogActions,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow
 } from '@mui/material';
-import { ArrowLeft, Save, Plus, Trash2, Upload, AlertCircle, Maximize2 } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, Upload, AlertCircle, Maximize2, X } from 'lucide-react';
 import { api, ASSET_BASE_URL } from '../api';
 
 interface EventConfig {
@@ -35,33 +35,34 @@ const parseMarkdownToJSX = (text: string): React.ReactNode[] => {
     const line = rawLines[i];
     const trimmed = line.trim();
 
-    // Check if this line starts a table
-    if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+    // Robust Table Detection
+    if (trimmed.includes('|') && i + 1 < rawLines.length && rawLines[i+1].trim().includes('|') && /^[\s-:|]+$/.test(rawLines[i+1].trim().replace(/[a-zA-Z0-9]/g, ''))) {
       const tableLines: string[] = [];
-      while (i < rawLines.length && rawLines[i].trim().startsWith('|')) {
+      while (i < rawLines.length && rawLines[i].trim().includes('|')) {
         tableLines.push(rawLines[i].trim());
         i++;
       }
-
-      if (tableLines.length >= 1) {
+      
+      if (tableLines.length >= 2) {
         const parseRow = (rowStr: string) => {
-          const cells = rowStr.split('|').map(c => c.trim());
-          if (cells.length > 2) {
-            return cells.slice(1, cells.length - 1);
-          }
-          return [];
+          let cleaned = rowStr;
+          if (cleaned.startsWith('|')) cleaned = cleaned.substring(1);
+          if (cleaned.endsWith('|')) cleaned = cleaned.substring(0, cleaned.length - 1);
+          return cleaned.split('|').map(c => c.trim());
         };
 
         const headers = parseRow(tableLines[0]);
-        const hasSeparator = tableLines.length > 1 && /^\|[\s-:|]*\|$/.test(tableLines[1]);
-        const dataRowsStart = hasSeparator ? 2 : 1;
+        const separatorRow = parseRow(tableLines[1]);
+        const isSeparator = separatorRow.every(cell => /^[\s-:]+$/.test(cell));
+        const dataRowsStart = isSeparator ? 2 : 1;
 
         const rows: string[][] = [];
         for (let r = dataRowsStart; r < tableLines.length; r++) {
           const cells = parseRow(tableLines[r]);
-          if (cells.length > 0) {
-            rows.push(cells);
+          while (cells.length < headers.length) {
+            cells.push('');
           }
+          rows.push(cells.slice(0, headers.length));
         }
 
         elements.push(
@@ -191,6 +192,55 @@ export const TournamentFormView: React.FC<TournamentFormViewProps> = ({
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
   const [focusModeOpen, setFocusModeOpen] = useState(false);
   const descriptionRef = React.useRef<HTMLTextAreaElement | null>(null);
+
+  // Table Builder State
+  const [tableBuilderOpen, setTableBuilderOpen] = useState(false);
+  const [tableRows, setTableRows] = useState<string[][]>([
+    ['Category', 'Playing', 'Reserve'],
+    ["Men's", '5', '1'],
+    ['Veteran (40+)', '3', '1'],
+    ['Boys (U-19)', '2', '1']
+  ]);
+
+  const handleCellChange = (rIdx: number, cIdx: number, val: string) => {
+    const updated = tableRows.map((row, r) => 
+      row.map((cell, c) => (r === rIdx && c === cIdx ? val : cell))
+    );
+    setTableRows(updated);
+  };
+
+  const handleAddRow = () => {
+    const colCount = tableRows[0]?.length || 3;
+    setTableRows([...tableRows, Array(colCount).fill('')]);
+  };
+
+  const handleRemoveRow = (rIdx: number) => {
+    if (tableRows.length <= 2) return;
+    setTableRows(tableRows.filter((_, idx) => idx !== rIdx));
+  };
+
+  const handleAddColumn = () => {
+    setTableRows(tableRows.map(row => [...row, '']));
+  };
+
+  const handleRemoveColumn = (cIdx: number) => {
+    if (tableRows[0].length <= 1) return;
+    setTableRows(tableRows.map(row => row.filter((_, idx) => idx !== cIdx)));
+  };
+
+  const generateMarkdownTable = () => {
+    if (tableRows.length === 0) return '';
+    const headerRow = `| ${tableRows[0].join(' | ')} |`;
+    const separatorRow = `| ${tableRows[0].map(() => '---').join(' | ')} |`;
+    const dataRows = tableRows.slice(1).map(row => `| ${row.join(' | ')} |`).join('\n');
+    return `\n${headerRow}\n${separatorRow}\n${dataRows}\n`;
+  };
+
+  const handleInsertTableSubmit = () => {
+    const generatedMarkdown = generateMarkdownTable();
+    handleInsertMarkup(generatedMarkdown);
+    setTableBuilderOpen(false);
+  };
 
   // Dynamic events configurator
   const [events, setEvents] = useState<EventConfig[]>([
@@ -581,7 +631,7 @@ export const TournamentFormView: React.FC<TournamentFormViewProps> = ({
                     <Button size="small" variant="outlined" color="inherit" onClick={() => handleInsertMarkup('sub-bullet')} sx={{ fontSize: '0.72rem', py: 0.3, px: 1, textTransform: 'none', borderColor: 'rgba(255,255,255,0.08)' }}>
                       Sub-bullet
                     </Button>
-                    <Button size="small" variant="outlined" color="inherit" onClick={() => handleInsertMarkup('table')} sx={{ fontSize: '0.72rem', py: 0.3, px: 1, textTransform: 'none', borderColor: 'rgba(255,255,255,0.08)' }}>
+                    <Button size="small" variant="outlined" color="inherit" onClick={() => setTableBuilderOpen(true)} sx={{ fontSize: '0.72rem', py: 0.3, px: 1, textTransform: 'none', borderColor: 'rgba(255,255,255,0.08)' }}>
                       Table
                     </Button>
                     <Button size="small" variant="outlined" color="inherit" onClick={() => handleInsertMarkup('divider')} sx={{ fontSize: '0.72rem', py: 0.3, px: 1, textTransform: 'none', borderColor: 'rgba(255,255,255,0.08)' }}>
@@ -812,7 +862,7 @@ export const TournamentFormView: React.FC<TournamentFormViewProps> = ({
                   size="small"
                   variant="outlined"
                   color="inherit"
-                  onClick={() => handleInsertMarkup(type)}
+                  onClick={() => type === 'table' ? setTableBuilderOpen(true) : handleInsertMarkup(type)}
                   sx={{ fontSize: '0.7rem', py: 0.3, px: 1, textTransform: 'none', borderColor: 'rgba(255,255,255,0.08)' }}
                 >
                   {type === 'heading2' ? 'H2' : type === 'heading3' ? 'H3' : type === 'heading4' ? 'H4' : type === 'sub-bullet' ? 'Sub-bullet' : type.charAt(0).toUpperCase() + type.slice(1)}
@@ -909,6 +959,112 @@ export const TournamentFormView: React.FC<TournamentFormViewProps> = ({
         <DialogActions sx={{ borderTop: '1px solid rgba(255,255,255,0.08)', p: 2, justifyContent: 'flex-end' }}>
           <Button onClick={() => setFocusModeOpen(false)} variant="contained" color="primary" sx={{ fontWeight: 'bold', px: 4 }}>
             Apply & Close Editor
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Table Builder Dialog */}
+      <Dialog
+        open={tableBuilderOpen}
+        onClose={() => setTableBuilderOpen(false)}
+        maxWidth="md"
+        fullWidth
+        sx={{
+          '& .MuiDialog-paper': {
+            bgcolor: '#0a0f1d',
+            border: '1px solid rgba(22, 224, 255, 0.15)',
+            backgroundImage: 'none',
+            color: '#ffffff',
+            borderRadius: 3
+          }
+        }}
+      >
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          <Typography variant="h5" sx={{ fontWeight: 800, color: 'primary.main', fontFamily: '"Rajdhani", sans-serif' }}>
+            Interactive Table Builder
+          </Typography>
+          <IconButton onClick={() => setTableBuilderOpen(false)} sx={{ color: 'text.secondary' }}>
+            <X size={20} />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent sx={{ mt: 2 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Modify headers and cell values in the grid below. You can add or remove rows and columns.
+          </Typography>
+
+          <Box sx={{ display: 'flex', gap: 1.5, mb: 3, flexWrap: 'wrap' }}>
+            <Button size="small" variant="outlined" color="primary" onClick={handleAddRow} sx={{ fontSize: '0.8rem', textTransform: 'none' }}>
+              + Add Row
+            </Button>
+            <Button size="small" variant="outlined" color="primary" onClick={handleAddColumn} sx={{ fontSize: '0.8rem', textTransform: 'none' }}>
+              + Add Column
+            </Button>
+          </Box>
+
+          <Box sx={{ overflowX: 'auto', maxHeight: '400px', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 2, p: 2, bgcolor: 'rgba(255,255,255,0.01)' }}>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  {tableRows[0].map((_, cIdx) => (
+                    <TableCell key={cIdx} align="center" sx={{ borderBottom: '2px solid rgba(22,224,255,0.2)', py: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center' }}>
+                        <Typography variant="caption" sx={{ fontWeight: 700, color: 'primary.main' }}>Col #{cIdx + 1}</Typography>
+                        {tableRows[0].length > 1 && (
+                          <IconButton size="small" color="error" onClick={() => handleRemoveColumn(cIdx)} sx={{ p: 0.2 }}>
+                            <Trash2 size={12} />
+                          </IconButton>
+                        )}
+                      </Box>
+                    </TableCell>
+                  ))}
+                  <TableCell sx={{ borderBottom: '2px solid rgba(22,224,255,0.2)', width: '40px' }} />
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {tableRows.map((row, rIdx) => (
+                  <TableRow key={rIdx}>
+                    {row.map((cell, cIdx) => (
+                      <TableCell key={cIdx} sx={{ borderBottom: '1px solid rgba(255,255,255,0.05)', py: 1 }}>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          value={cell}
+                          onChange={(e) => handleCellChange(rIdx, cIdx, e.target.value)}
+                          placeholder={rIdx === 0 ? `Header ${cIdx + 1}` : `Cell ${rIdx}, ${cIdx + 1}`}
+                          slotProps={{
+                            input: {
+                              style: {
+                                fontFamily: rIdx === 0 ? '"Rajdhani", sans-serif' : 'inherit',
+                                fontWeight: rIdx === 0 ? 700 : 'normal',
+                                color: rIdx === 0 ? '#16E0FF' : '#ffffff',
+                                fontSize: '0.88rem'
+                              }
+                            }
+                          }}
+                        />
+                      </TableCell>
+                    ))}
+                    <TableCell sx={{ borderBottom: '1px solid rgba(255,255,255,0.05)', align: 'center', py: 1 }}>
+                      {tableRows.length > 2 && (
+                        <IconButton size="small" color="error" onClick={() => handleRemoveRow(rIdx)}>
+                          <Trash2 size={14} />
+                        </IconButton>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Box>
+        </DialogContent>
+
+        <DialogActions sx={{ px: 3, pb: 3, gap: 1.5 }}>
+          <Button onClick={() => setTableBuilderOpen(false)} variant="outlined" color="inherit">
+            Cancel
+          </Button>
+          <Button onClick={handleInsertTableSubmit} variant="contained" color="secondary">
+            Insert Table
           </Button>
         </DialogActions>
       </Dialog>
