@@ -256,6 +256,9 @@ public class PlayerService {
         Auction auction = auctionRepository.findActiveById(auctionId)
                 .orElseThrow(() -> new EntityNotFoundException("Auction not found with ID: " + auctionId));
 
+        // Get the next serial number for this auction
+        Integer nextSerialNumber = (int) auctionPlayerRepository.countByAuctionId(auctionId) + 1;
+
         PlayerImportResult result = new PlayerImportResult();
         List<String> errors = new ArrayList<>();
         int successfullyImported = 0;
@@ -386,6 +389,7 @@ public class PlayerService {
                             .player(player)
                             .basePrice(auction.getMinimumBid())
                             .status(PlayerStatus.Available)
+                            .serialNumber(nextSerialNumber++)
                             .build();
                     auctionPlayerRepository.save(ap);
                 } else {
@@ -427,6 +431,9 @@ public class PlayerService {
         if (auctionId != null) {
             Auction auction = auctionRepository.findActiveById(auctionId)
                     .orElseThrow(() -> new EntityNotFoundException("Auction not found with ID: " + auctionId));
+
+            // Get the next serial number for this auction
+            Integer nextSerialNumber = (int) auctionPlayerRepository.countByAuctionId(auctionId) + 1;
 
             // Validate category
             List<String> validCategories = new ArrayList<>();
@@ -492,6 +499,7 @@ public class PlayerService {
                         .player(player)
                         .basePrice(auction.getMinimumBid())
                         .status(PlayerStatus.Available)
+                        .serialNumber(nextSerialNumber++)
                         .build();
                 auctionPlayerRepository.save(ap);
             }

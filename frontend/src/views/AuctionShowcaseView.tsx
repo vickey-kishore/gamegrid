@@ -18,6 +18,8 @@ interface ShowcasePlayer {
   basePrice: number;
   soldPrice?: number;
   status: string;
+  serialNumber?: number | null;
+  isRetained?: boolean;
 }
 
 interface ShowcaseTeam {
@@ -54,6 +56,9 @@ export const AuctionShowcaseView: React.FC<AuctionShowcaseViewProps> = ({ auctio
   const [showcaseIndividualIndex, setShowcaseIndividualIndex] = useState<number>(0);
   const [auction, setAuction] = useState<any>(null);
   const [userRole, setUserRole] = useState<string>('VIEWER');
+
+  // Get unique categories from players
+  const uniqueCategories = Array.from(new Set(players.map(p => p.category).filter(Boolean))).sort();
 
   const fetchPlayers = async () => {
     try {
@@ -195,200 +200,247 @@ export const AuctionShowcaseView: React.FC<AuctionShowcaseViewProps> = ({ auctio
           {showcaseTeamId !== 'all' ? (
             /* Single Team Showcase View */
             <Box sx={{ flexGrow: 1, minHeight: 0, display: 'flex', flexDirection: 'column', pb: 2 }}>
-              {teams.filter(t => t.id === showcaseTeamId).map((team) => (
-                <Card key={team.id} sx={{ border: '2px solid rgba(22, 224, 255, 0.25)', bgcolor: '#141B2D', borderRadius: 4, p: 3, flexGrow: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
+              {teams.filter(t => t.id === showcaseTeamId).map((team) => {
+                console.log('Roster team:', team.teamName, 'purchasedPlayers:', team.purchasedPlayers);
+                return (
+                  <Card key={team.id} sx={{ border: '2px solid rgba(22, 224, 255, 0.25)', bgcolor: '#141B2D', borderRadius: 4, p: 3, flexGrow: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
 
-                  {/* Header: Logo, Name, and Large Counters */}
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 3, pb: 2, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                      <Avatar
-                        src={team.logoPath ? `${ASSET_BASE_URL}/${team.logoPath}` : undefined}
-                        sx={{ width: 80, height: 80, border: '3px solid #16E0FF', boxShadow: '0 0 16px rgba(22, 224, 255, 0.25)' }}
-                      >
-                        {(team.teamName || '').substring(0, 2).toUpperCase()}
-                      </Avatar>
-                      <Box>
-                        <Typography variant="h3" sx={{ fontWeight: 900, color: '#ffffff', fontFamily: '"Rajdhani", sans-serif', letterSpacing: '1px', textTransform: 'uppercase' }}>
-                          {team.teamName}
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: '#16E0FF', fontWeight: 700, letterSpacing: '2px' }}>
-                          FRANCHISE ROSTER SUMMARY
-                        </Typography>
-                      </Box>
-                    </Box>
-
-                    {/* Large Counters */}
-                    <Box sx={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                      <Box sx={{ textAlign: 'center' }}>
-                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, fontSize: '0.8rem', letterSpacing: '1.5px', display: 'block', mb: 0.5 }}>TOTAL PURSE</Typography>
-                        <Typography variant="h4" sx={{ fontWeight: 900, fontFamily: '"Rajdhani", sans-serif' }}>₹{team.purseAmount.toLocaleString('en-IN')}</Typography>
-                      </Box>
-                      <Box sx={{ textAlign: 'center' }}>
-                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, fontSize: '0.8rem', letterSpacing: '1.5px', display: 'block', mb: 0.5 }}>REMAINING PURSE</Typography>
-                        <Typography variant="h4" sx={{ fontWeight: 900, color: '#16E0FF', fontFamily: '"Rajdhani", sans-serif' }}>₹{team.remainingPurse.toLocaleString('en-IN')}</Typography>
-                      </Box>
-                      <Box sx={{ textAlign: 'center' }}>
-                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, fontSize: '0.8rem', letterSpacing: '1.5px', display: 'block', mb: 0.5 }}>SQUAD SIZE</Typography>
-                        <Typography variant="h4" sx={{ fontWeight: 900, color: team.playersCount >= team.minimumPlayers ? '#10B981' : '#F59E0B', fontFamily: '"Rajdhani", sans-serif' }}>
-                          {team.playersCount} / {team.minimumPlayers}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </Box>
-
-                  {/* Category Constraints Progress Badges */}
-                  {rosterRules.length > 0 && (
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, p: 2, bgcolor: 'rgba(22, 224, 255, 0.02)', borderRadius: 3, border: '1px solid rgba(22, 224, 255, 0.06)' }}>
-                      {rosterRules.map((rule, idx) => {
-                        const currentCount = team.purchasedPlayers ? team.purchasedPlayers.filter((p: any) => p.category?.replace(/\s+/g, ' ').trim().toLowerCase() === rule.category.replace(/\s+/g, ' ').trim().toLowerCase()).length : 0;
-                        const met = currentCount >= rule.minCount;
-                        return (
-                          <Chip
-                            key={idx}
-                            size="medium"
-                            label={`${rule.category}: ${currentCount} / ${rule.minCount}`}
-                            sx={{
-                              height: '32px',
-                              fontSize: '0.9rem',
-                              fontWeight: 800,
-                              px: 1,
-                              bgcolor: met ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.1)',
-                              color: met ? '#10B981' : '#F59E0B',
-                              border: met ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid rgba(245, 158, 11, 0.25)',
-                              borderRadius: 1.5
-                            }}
-                          />
-                        );
-                      })}
-                    </Box>
-                  )}
-
-                  {/* Purchased Players Registry - Layout Switching */}
-                  {showcaseLayout === 'grid' ? (
-                    /* Grid View for single team */
-                    <Grid container spacing={2} sx={{ flexGrow: 1, overflowY: 'auto', pr: 1, pb: 2 }}>
-                      {team.purchasedPlayers && team.purchasedPlayers.length > 0 ? (
-                        team.purchasedPlayers
-                          .filter(p => !categoryFilter || p.category === categoryFilter)
-                          .map((p: any, pIdx: number) => (
-                            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={p.id}>
-                              <Card sx={{
-                                bgcolor: '#141B2D',
-                                border: '1px solid rgba(22, 224, 255, 0.15)',
-                                borderRadius: 2,
-                                p: 1.5,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: 1.5,
-                                boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-                                transition: 'all 0.2s',
-                                '&:hover': {
-                                  borderColor: '#16E0FF',
-                                  boxShadow: '0 0 12px rgba(22, 224, 255, 0.15)',
-                                  transform: 'translateY(-2px)'
-                                }
-                              }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                  <Avatar
-                                    src={p.photoPath ? (p.photoPath.startsWith('http') ? p.photoPath : `${ASSET_BASE_URL}/${p.photoPath}`) : undefined}
-                                    sx={{ width: 48, height: 48, border: '2px solid rgba(22, 224, 255, 0.3)' }}
-                                  >
-                                    <User size={20} />
-                                  </Avatar>
-                                  <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                                    <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', color: '#ffffff' }}>
-                                      {p.name}
-                                    </Typography>
-                                    <Typography sx={{ fontWeight: 600, fontSize: '0.8rem', color: '#94a3b8' }}>
-                                      {p.category}
-                                    </Typography>
-                                  </Box>
-                                </Box>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <Typography sx={{ fontSize: '0.85rem', color: '#94a3b8' }}>
-                                    {p.club || '—'}
-                                  </Typography>
-                                  <Typography sx={{ color: '#16E0FF', fontWeight: 900, fontSize: '1.1rem', fontFamily: '"Rajdhani", sans-serif' }}>
-                                    ₹{(p.soldPrice || 0).toLocaleString('en-IN')}
-                                  </Typography>
-                                </Box>
-                              </Card>
-                            </Grid>
-                          ))
-                      ) : (
-                        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', py: 8 }}>
-                          <Typography variant="body1" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                            No players purchased yet.
+                    {/* Header: Logo, Name, and Large Counters */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 3, pb: 2, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                        <Avatar
+                          src={team.logoPath ? `${ASSET_BASE_URL}/${team.logoPath}` : undefined}
+                          sx={{ width: 80, height: 80, border: '3px solid #16E0FF', boxShadow: '0 0 16px rgba(22, 224, 255, 0.25)' }}
+                        >
+                          {(team.teamName || '').substring(0, 2).toUpperCase()}
+                        </Avatar>
+                        <Box>
+                          <Typography variant="h3" sx={{ fontWeight: 900, color: '#ffffff', fontFamily: '"Rajdhani", sans-serif', letterSpacing: '1px', textTransform: 'uppercase' }}>
+                            {team.teamName}
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: '#16E0FF', fontWeight: 700, letterSpacing: '2px' }}>
+                            FRANCHISE ROSTER SUMMARY
                           </Typography>
                         </Box>
-                      )}
-                    </Grid>
-                  ) : (
-                    /* List View for single team */
-                    <TableContainer
-                      sx={{
-                        border: '1px solid rgba(255,255,255,0.06)',
-                        borderRadius: 2.5,
-                        flexGrow: 1,
-                        minHeight: 0,
-                        overflowY: 'hidden',
-                        bgcolor: 'rgba(255, 255, 255, 0.01)',
-                        '&::-webkit-scrollbar': { display: 'none' },
-                        msOverflowStyle: 'none',
-                        scrollbarWidth: 'none'
-                      }}
-                    >
-                      {team.purchasedPlayers && team.purchasedPlayers.length > 0 ? (
-                        <Table size="small" stickyHeader sx={{ '& td': { py: 1.1, borderBottom: '1px solid rgba(255,255,255,0.03)' } }}>
-                          <TableHead>
-                            <TableRow sx={{ '& th': { bgcolor: '#141B2D', borderBottom: '2px solid rgba(255,255,255,0.08)', color: '#94a3b8', fontSize: '0.85rem', fontWeight: 700, py: 1 } }}>
-                              <TableCell sx={{ pl: 3, width: '60px' }}>S.No</TableCell>
-                              <TableCell>Player Name</TableCell>
-                              <TableCell>Category</TableCell>
-                              <TableCell>Club</TableCell>
-                              <TableCell align="right" sx={{ pr: 3 }}>Winning Bid</TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {team.purchasedPlayers
-                              .filter(p => !categoryFilter || p.category === categoryFilter)
-                              .slice(0, 13)
-                              .map((p: any, pIdx: number) => (
-                                <TableRow key={p.id} hover sx={{ '&:hover': { bgcolor: 'rgba(255,255,255,0.01)' } }}>
-                                  <TableCell sx={{ pl: 3, color: '#64748b', fontWeight: 600, fontSize: '0.88rem' }}>{pIdx + 1}</TableCell>
-                                  <TableCell>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                      <Avatar
-                                        src={p.photoPath ? (p.photoPath.startsWith('http') ? p.photoPath : `${ASSET_BASE_URL}/${p.photoPath}`) : undefined}
-                                        sx={{ width: 32, height: 32, border: '1px solid rgba(255,255,255,0.08)' }}
-                                      >
-                                        <User size={16} />
-                                      </Avatar>
-                                      <Typography sx={{ fontWeight: 800, fontSize: '0.92rem', color: '#ffffff' }}>
-                                        {p.name}
+                      </Box>
+
+                      {/* Large Counters */}
+                      <Box sx={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                        <Box sx={{ textAlign: 'center' }}>
+                          <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, fontSize: '0.8rem', letterSpacing: '1.5px', display: 'block', mb: 0.5 }}>TOTAL PURSE</Typography>
+                          <Typography variant="h4" sx={{ fontWeight: 900, fontFamily: '"Rajdhani", sans-serif' }}>₹{team.purseAmount.toLocaleString('en-IN')}</Typography>
+                        </Box>
+                        <Box sx={{ textAlign: 'center' }}>
+                          <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, fontSize: '0.8rem', letterSpacing: '1.5px', display: 'block', mb: 0.5 }}>REMAINING PURSE</Typography>
+                          <Typography variant="h4" sx={{ fontWeight: 900, color: '#16E0FF', fontFamily: '"Rajdhani", sans-serif' }}>₹{team.remainingPurse.toLocaleString('en-IN')}</Typography>
+                        </Box>
+                        <Box sx={{ textAlign: 'center' }}>
+                          <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, fontSize: '0.8rem', letterSpacing: '1.5px', display: 'block', mb: 0.5 }}>SQUAD SIZE</Typography>
+                          <Typography variant="h4" sx={{
+                            fontWeight: 900, color: (() => {
+                              const minSquadSize = rosterRules.reduce((sum, rule) => sum + rule.minCount, 0);
+                              const maxSquadSize = rosterRules.reduce((sum, rule) => sum + (rule.maxCount || rule.minCount), 0);
+                              return team.playersCount >= minSquadSize ? '#10B981' : '#F59E0B';
+                            })(), fontFamily: '"Rajdhani", sans-serif'
+                          }}>
+                            {team.playersCount} / {(() => {
+                              const minSquadSize = rosterRules.reduce((sum, rule) => sum + rule.minCount, 0);
+                              const maxSquadSize = rosterRules.reduce((sum, rule) => sum + (rule.maxCount || rule.minCount), 0);
+                              return minSquadSize === maxSquadSize ? minSquadSize : `${minSquadSize} - ${maxSquadSize}`;
+                            })()}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Box>
+
+                    {/* Category Constraints Progress Badges */}
+                    {rosterRules.length > 0 && (
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, p: 2, bgcolor: 'rgba(22, 224, 255, 0.02)', borderRadius: 3, border: '1px solid rgba(22, 224, 255, 0.06)' }}>
+                        {rosterRules.map((rule, idx) => {
+                          const currentCount = team.purchasedPlayers ? team.purchasedPlayers.filter((p: any) => p.category?.replace(/\s+/g, ' ').trim().toLowerCase() === rule.category.replace(/\s+/g, ' ').trim().toLowerCase()).length : 0;
+                          const met = currentCount >= rule.minCount;
+                          return (
+                            <Chip
+                              key={idx}
+                              size="medium"
+                              label={`${rule.category}: ${currentCount} / ${rule.minCount}`}
+                              sx={{
+                                height: '32px',
+                                fontSize: '0.9rem',
+                                fontWeight: 800,
+                                px: 1,
+                                bgcolor: met ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.1)',
+                                color: met ? '#10B981' : '#F59E0B',
+                                border: met ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid rgba(245, 158, 11, 0.25)',
+                                borderRadius: 1.5
+                              }}
+                            />
+                          );
+                        })}
+                      </Box>
+                    )}
+
+                    {/* Purchased Players Registry - Layout Switching */}
+                    {showcaseLayout === 'grid' ? (
+                      /* Grid View for single team */
+                      <Grid container spacing={2} sx={{ flexGrow: 1, overflowY: 'auto', pr: 1, pb: 2 }}>
+                        {team.purchasedPlayers && team.purchasedPlayers.length > 0 ? (
+                          team.purchasedPlayers
+                            .filter(p => !categoryFilter || p.category === categoryFilter)
+                            .map((p: any, pIdx: number) => (
+                              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={p.id}>
+                                <Card sx={{
+                                  bgcolor: '#141B2D',
+                                  border: '1px solid rgba(22, 224, 255, 0.15)',
+                                  borderRadius: 2,
+                                  p: 1.5,
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: 1.5,
+                                  boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                                  transition: 'all 0.2s',
+                                  '&:hover': {
+                                    borderColor: '#16E0FF',
+                                    boxShadow: '0 0 12px rgba(22, 224, 255, 0.15)',
+                                    transform: 'translateY(-2px)'
+                                  }
+                                }}>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                    <Avatar
+                                      src={p.photoPath ? (p.photoPath.startsWith('http') ? p.photoPath : `${ASSET_BASE_URL}/${p.photoPath}`) : undefined}
+                                      sx={{ width: 48, height: 48, border: '2px solid rgba(22, 224, 255, 0.3)' }}
+                                    >
+                                      <User size={20} />
+                                    </Avatar>
+                                    <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', color: '#ffffff' }}>
+                                          {p.name}
+                                        </Typography>
+                                        {p.isRetained && (
+                                          <Chip
+                                            label="Retained"
+                                            size="small"
+                                            sx={{
+                                              bgcolor: 'rgba(168, 85, 247, 0.25)',
+                                              color: '#A855F7',
+                                              border: '1px solid rgba(168, 85, 247, 0.5)',
+                                              fontWeight: 700,
+                                              fontSize: '0.65rem',
+                                              height: 18,
+                                              '& .MuiChip-label': { px: 0.5 }
+                                            }}
+                                          />
+                                        )}
+                                      </Box>
+                                      <Typography sx={{ fontWeight: 600, fontSize: '0.8rem', color: '#94a3b8' }}>
+                                        {p.category}
                                       </Typography>
                                     </Box>
-                                  </TableCell>
-                                  <TableCell sx={{ fontWeight: 600, fontSize: '0.85rem', color: '#94a3b8' }}>{p.category}</TableCell>
-                                  <TableCell sx={{ fontSize: '0.85rem', color: '#94a3b8' }}>{p.club || '—'}</TableCell>
-                                  <TableCell align="right" sx={{ pr: 3, color: '#16E0FF', fontWeight: 900, fontSize: '1.02rem', fontFamily: '"Rajdhani", sans-serif' }}>
-                                    ₹{(p.soldPrice || 0).toLocaleString('en-IN')}
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                          </TableBody>
-                        </Table>
-                      ) : (
-                        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', py: 8 }}>
-                          <Typography variant="body1" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                            No players purchased yet.
-                          </Typography>
-                        </Box>
-                      )}
-                    </TableContainer>
-                  )}
-                </Card>
-              ))}
+                                  </Box>
+                                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <Typography sx={{ fontSize: '0.85rem', color: '#94a3b8' }}>
+                                      {p.club || '—'}
+                                    </Typography>
+                                    <Typography sx={{ color: '#16E0FF', fontWeight: 900, fontSize: '1.1rem', fontFamily: '"Rajdhani", sans-serif' }}>
+                                      ₹{(p.soldPrice || 0).toLocaleString('en-IN')}
+                                    </Typography>
+                                  </Box>
+                                </Card>
+                              </Grid>
+                            ))
+                        ) : (
+                          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', py: 8 }}>
+                            <Typography variant="body1" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                              No players purchased yet.
+                            </Typography>
+                          </Box>
+                        )}
+                      </Grid>
+                    ) : (
+                      /* List View for single team */
+                      <TableContainer
+                        sx={{
+                          border: '1px solid rgba(255,255,255,0.06)',
+                          borderRadius: 2.5,
+                          flexGrow: 1,
+                          minHeight: 0,
+                          overflowY: 'hidden',
+                          bgcolor: 'rgba(255, 255, 255, 0.01)',
+                          '&::-webkit-scrollbar': { display: 'none' },
+                          msOverflowStyle: 'none',
+                          scrollbarWidth: 'none'
+                        }}
+                      >
+                        {team.purchasedPlayers && team.purchasedPlayers.length > 0 ? (
+                          <Table size="small" stickyHeader sx={{ '& td': { py: 1.1, borderBottom: '1px solid rgba(255,255,255,0.03)' } }}>
+                            <TableHead>
+                              <TableRow sx={{ '& th': { bgcolor: '#141B2D', borderBottom: '2px solid rgba(255,255,255,0.08)', color: '#94a3b8', fontSize: '0.85rem', fontWeight: 700, py: 1 } }}>
+                                <TableCell sx={{ pl: 3, width: '60px' }}>S.No</TableCell>
+                                <TableCell>Player Name</TableCell>
+                                <TableCell>Category</TableCell>
+                                <TableCell>Club</TableCell>
+                                <TableCell align="right" sx={{ pr: 3 }}>Winning Bid</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {team.purchasedPlayers
+                                .filter(p => !categoryFilter || p.category === categoryFilter)
+                                .slice(0, 13)
+                                .map((p: any, pIdx: number) => (
+                                  <TableRow key={p.id} hover sx={{ '&:hover': { bgcolor: 'rgba(255,255,255,0.01)' } }}>
+                                    <TableCell sx={{ pl: 3, color: '#64748b', fontWeight: 600, fontSize: '0.88rem' }}>{pIdx + 1}</TableCell>
+                                    <TableCell>
+                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                        <Avatar
+                                          src={p.photoPath ? (p.photoPath.startsWith('http') ? p.photoPath : `${ASSET_BASE_URL}/${p.photoPath}`) : undefined}
+                                          sx={{ width: 32, height: 32, border: '1px solid rgba(255,255,255,0.08)' }}
+                                        >
+                                          <User size={16} />
+                                        </Avatar>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                                          <Typography sx={{ fontWeight: 800, fontSize: '0.92rem', color: '#ffffff' }}>
+                                            {p.name}
+                                          </Typography>
+                                          {p.isRetained && (
+                                            <Chip
+                                              label="Retained"
+                                              size="small"
+                                              sx={{
+                                                bgcolor: 'rgba(168, 85, 247, 0.25)',
+                                                color: '#A855F7',
+                                                border: '1px solid rgba(168, 85, 247, 0.5)',
+                                                fontWeight: 700,
+                                                fontSize: '0.6rem',
+                                                height: 16,
+                                                '& .MuiChip-label': { px: 0.4 }
+                                              }}
+                                            />
+                                          )}
+                                        </Box>
+                                      </Box>
+                                    </TableCell>
+                                    <TableCell sx={{ fontWeight: 600, fontSize: '0.85rem', color: '#94a3b8' }}>{p.category}</TableCell>
+                                    <TableCell sx={{ fontSize: '0.85rem', color: '#94a3b8' }}>{p.club || '—'}</TableCell>
+                                    <TableCell align="right" sx={{ pr: 3, color: '#16E0FF', fontWeight: 900, fontSize: '1.02rem', fontFamily: '"Rajdhani", sans-serif' }}>
+                                      ₹{(p.soldPrice || 0).toLocaleString('en-IN')}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                            </TableBody>
+                          </Table>
+                        ) : (
+                          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', py: 8 }}>
+                            <Typography variant="body1" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                              No players purchased yet.
+                            </Typography>
+                          </Box>
+                        )}
+                      </TableContainer>
+                    )}
+                  </Card>
+                );
+              })}
             </Box>
           ) : (
             /* All Teams Roster Grids */
@@ -426,8 +478,17 @@ export const AuctionShowcaseView: React.FC<AuctionShowcaseViewProps> = ({ auctio
                             </Box>
                             <Box>
                               <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '0.8rem', letterSpacing: '1px' }}>SQUAD SIZE</Typography>
-                              <Typography variant="h5" sx={{ fontWeight: 800, color: team.playersCount >= team.minimumPlayers ? '#10B981' : '#F59E0B' }}>
-                                {team.playersCount} / {team.minimumPlayers}
+                              <Typography variant="h5" sx={{
+                                fontWeight: 800, color: (() => {
+                                  const minSquadSize = rosterRules.reduce((sum, rule) => sum + rule.minCount, 0);
+                                  return team.playersCount >= minSquadSize ? '#10B981' : '#F59E0B';
+                                })()
+                              }}>
+                                {team.playersCount} / {(() => {
+                                  const minSquadSize = rosterRules.reduce((sum, rule) => sum + rule.minCount, 0);
+                                  const maxSquadSize = rosterRules.reduce((sum, rule) => sum + (rule.maxCount || rule.minCount), 0);
+                                  return minSquadSize === maxSquadSize ? minSquadSize : `${minSquadSize} - ${maxSquadSize}`;
+                                })()}
                               </Typography>
                             </Box>
                           </Box>
@@ -490,9 +551,26 @@ export const AuctionShowcaseView: React.FC<AuctionShowcaseViewProps> = ({ auctio
                                         <User size={16} />
                                       </Avatar>
                                       <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                                        <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#ffffff' }}>
-                                          {p.name}
-                                        </Typography>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                                          <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#ffffff' }}>
+                                            {p.name}
+                                          </Typography>
+                                          {p.isRetained && (
+                                            <Chip
+                                              label="Retained"
+                                              size="small"
+                                              sx={{
+                                                bgcolor: 'rgba(168, 85, 247, 0.25)',
+                                                color: '#A855F7',
+                                                border: '1px solid rgba(168, 85, 247, 0.5)',
+                                                fontWeight: 700,
+                                                fontSize: '0.6rem',
+                                                height: 16,
+                                                '& .MuiChip-label': { px: 0.4 }
+                                              }}
+                                            />
+                                          )}
+                                        </Box>
                                         <Typography sx={{ fontWeight: 500, fontSize: '0.75rem', color: '#94a3b8' }}>
                                           {p.category}
                                         </Typography>
@@ -536,9 +614,26 @@ export const AuctionShowcaseView: React.FC<AuctionShowcaseViewProps> = ({ auctio
                                           >
                                             <User size={16} />
                                           </Avatar>
-                                          <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.88rem', color: '#ffffff' }}>
-                                            {p.name}
-                                          </Typography>
+                                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                                            <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.88rem', color: '#ffffff' }}>
+                                              {p.name}
+                                            </Typography>
+                                            {p.isRetained && (
+                                              <Chip
+                                                label="Retained"
+                                                size="small"
+                                                sx={{
+                                                  bgcolor: 'rgba(168, 85, 247, 0.25)',
+                                                  color: '#A855F7',
+                                                  border: '1px solid rgba(168, 85, 247, 0.5)',
+                                                  fontWeight: 700,
+                                                  fontSize: '0.6rem',
+                                                  height: 16,
+                                                  '& .MuiChip-label': { px: 0.4 }
+                                                }}
+                                              />
+                                            )}
+                                          </Box>
                                         </Box>
                                       </TableCell>
                                       <TableCell>{p.category}</TableCell>
@@ -604,9 +699,13 @@ export const AuctionShowcaseView: React.FC<AuctionShowcaseViewProps> = ({ auctio
                     Franchises must draft players to meet the minimum squad size required to complete their roster registration.
                   </Typography>
                   <Box sx={{ mt: 1, p: 1.5, bgcolor: 'rgba(255,255,255,0.02)', borderRadius: 1.5 }}>
-                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>MINIMUM SQUAD REQUIREMENT</Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>SQUAD SIZE REQUIREMENT</Typography>
                     <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#10B981', fontFamily: '"Rajdhani", sans-serif' }}>
-                      {teams[0]?.minimumPlayers || 8} Players
+                      {(() => {
+                        const minSquadSize = rosterRules.reduce((sum, rule) => sum + rule.minCount, 0);
+                        const maxSquadSize = rosterRules.reduce((sum, rule) => sum + (rule.maxCount || rule.minCount), 0);
+                        return minSquadSize === maxSquadSize ? `${minSquadSize} Players` : `${minSquadSize} - ${maxSquadSize} Players`;
+                      })()}
                     </Typography>
                   </Box>
                 </CardContent>
@@ -677,85 +776,9 @@ export const AuctionShowcaseView: React.FC<AuctionShowcaseViewProps> = ({ auctio
           </Grid>
         </Box>
       ) : showcaseSlide === 'available' ? (
-        /* Available Players Slide */
+        /* Available Players Slide - Individual View Only */
         <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          {showcaseLayout === 'grid' ? (
-            players.filter(p => p.status === 'Available' && (!categoryFilter || p.category === categoryFilter)).length > 0 ? (
-              <Box sx={{ flexGrow: 1, overflowY: 'auto', pr: 1, pb: 2 }}>
-                <Grid container spacing={2}>
-                  {players
-                    .filter(p => p.status === 'Available' && (!categoryFilter || p.category === categoryFilter))
-                    .map((player) => (
-                      <Grid size={{ xs: 12, sm: 6, md: 4 }} key={player.id}>
-                        <Card sx={{
-                          bgcolor: '#141B2D',
-                          border: '1px solid rgba(22, 224, 255, 0.15)',
-                          borderRadius: 2,
-                          p: 1.5,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 2,
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-                          transition: 'all 0.2s',
-                          '&:hover': {
-                            borderColor: '#16E0FF',
-                            boxShadow: '0 0 12px rgba(22, 224, 255, 0.15)',
-                            transform: 'translateY(-2px)'
-                          }
-                        }}>
-                          <Avatar
-                            src={player.photoPath ? (player.photoPath.startsWith('http') ? player.photoPath : `${ASSET_BASE_URL}/${player.photoPath}`) : undefined}
-                            sx={{ width: 44, height: 44, border: '2px solid rgba(22, 224, 255, 0.3)' }}
-                          >
-                            {(player.name || '').substring(0, 2).toUpperCase()}
-                          </Avatar>
-                          <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                            <Typography variant="subtitle1" noWrap sx={{ fontWeight: 'bold', color: '#ffffff' }}>
-                              {player.name}
-                            </Typography>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                              <Chip
-                                label={player.category}
-                                size="small"
-                                sx={{
-                                  height: '18px',
-                                  fontSize: '0.65rem',
-                                  fontWeight: 'bold',
-                                  bgcolor: 'rgba(22, 224, 255, 0.08)',
-                                  color: '#16E0FF',
-                                  border: '1px solid rgba(22, 224, 255, 0.15)'
-                                }}
-                              />
-                              {player.club && (
-                                <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: '100px' }}>
-                                  {player.club}
-                                </Typography>
-                              )}
-                            </Box>
-                          </Box>
-                          <Box sx={{ textAlign: 'right' }}>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#16E0FF', fontFamily: '"Rajdhani", sans-serif' }}>
-                              ₹{player.basePrice?.toLocaleString('en-IN')}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.65rem', textTransform: 'uppercase' }}>
-                              Base Price
-                            </Typography>
-                          </Box>
-                        </Card>
-                      </Grid>
-                    ))}
-                </Grid>
-              </Box>
-            ) : (
-              <Paper variant="outlined" sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', bgcolor: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.05)', py: 10, borderRadius: 4, gap: 2 }}>
-                <Award size={60} style={{ color: '#16E0FF', opacity: 0.4 }} />
-                <Typography variant="h5" sx={{ color: 'text.secondary', fontWeight: 'bold', fontFamily: '"Rajdhani", sans-serif' }}>
-                  No available players remaining in this category.
-                </Typography>
-              </Paper>
-            )
-          ) : (
-            /* Individual View (One-by-One Available) */
+          {/* Individual View (One-by-One Available) */
             (() => {
               const filtered = players.filter(p => p.status === 'Available' && (!categoryFilter || p.category === categoryFilter));
               if (filtered.length === 0) {
@@ -831,12 +854,45 @@ export const AuctionShowcaseView: React.FC<AuctionShowcaseViewProps> = ({ auctio
                   </Card>
                 </Box>
               );
-            })()
-          )}
+            })()}
         </Box>
       ) : showcaseSlide === 'unsold' ? (
         /* Unsold Players Slide */
         <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          {/* Category Filter */}
+          <Box sx={{ mb: 2 }}>
+            <FormControl size="small" sx={{ minWidth: 150 }}>
+              <InputLabel sx={{ color: '#94a3b8', fontSize: '0.85rem' }}>Category</InputLabel>
+              <Select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                label="Category"
+                sx={{
+                  bgcolor: 'rgba(255,255,255,0.03)',
+                  borderRadius: 2,
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: 'rgba(255,255,255,0.1)',
+                  },
+                  '&:hover .MuiOutlinedInput-notchedOutline': {
+                    borderColor: 'rgba(22, 224, 255, 0.3)',
+                  },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#16E0FF',
+                  },
+                  '& .MuiSelect-icon': {
+                    color: '#94a3b8',
+                  },
+                  color: '#ffffff',
+                  fontSize: '0.85rem'
+                }}
+              >
+                <MenuItem value="">All Categories</MenuItem>
+                {uniqueCategories.map((category) => (
+                  <MenuItem key={category} value={category}>{category}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
           {showcaseLayout === 'grid' ? (
             players.filter(p => p.status === 'Unsold' && (!categoryFilter || p.category === categoryFilter)).length > 0 ? (
               <Box sx={{ flexGrow: 1, overflowY: 'auto', pr: 1, pb: 2 }}>
@@ -996,9 +1052,9 @@ export const AuctionShowcaseView: React.FC<AuctionShowcaseViewProps> = ({ auctio
         /* Live Bidding Slide - Premium Audience Display */
         <Box sx={{ flexGrow: 1, minHeight: 0, display: 'flex', flexDirection: 'column', bgcolor: '#0B1220' }}>
           {currentPlayer ? (
-            <Box sx={{ flexGrow: 1, minHeight: 0, display: 'flex', p: 4, gap: 4 }}>
+            <Box sx={{ flexGrow: 1, minHeight: 0, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, p: { xs: 2, sm: 3, md: 4 }, gap: { xs: 2, md: 4 } }}>
               {/* Left Column: Player Spotlight (50%) */}
-              <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
+              <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', height: { xs: 'auto', md: '100%' }, minHeight: { xs: 'auto', md: 0 } }}>
                 <Card sx={{
                   height: '100%',
                   border: '1px solid rgba(22, 224, 255, 0.2)',
@@ -1021,8 +1077,8 @@ export const AuctionShowcaseView: React.FC<AuctionShowcaseViewProps> = ({ auctio
                     <Avatar
                       src={currentPlayer.photoPath ? (currentPlayer.photoPath.startsWith('http') ? currentPlayer.photoPath : `${ASSET_BASE_URL}/${currentPlayer.photoPath}`) : undefined}
                       sx={{
-                        width: 350,
-                        height: 350,
+                        width: { xs: 200, sm: 250, md: 350 },
+                        height: { xs: 200, sm: 250, md: 350 },
                         border: '4px solid rgba(22, 224, 255, 0.3)',
                         boxShadow: '0 0 30px rgba(22, 224, 255, 0.2)',
                         position: 'relative'
@@ -1041,15 +1097,28 @@ export const AuctionShowcaseView: React.FC<AuctionShowcaseViewProps> = ({ auctio
                       fontFamily: '"Rajdhani", sans-serif',
                       textTransform: 'uppercase',
                       letterSpacing: '3px',
-                      fontSize: '4.5rem',
+                      fontSize: { xs: '2rem', sm: '3rem', md: '4.5rem' },
                       mb: 2,
                       lineHeight: 1.1
                     }}>
                       {currentPlayer.name}
                     </Typography>
 
+                    {/* Auction Number */}
+                    <Typography variant="h4" sx={{
+                      fontWeight: 800,
+                      color: '#16E0FF',
+                      fontFamily: '"Rajdhani", sans-serif',
+                      letterSpacing: '2px',
+                      fontSize: { xs: '1rem', sm: '1.5rem', md: '2rem' },
+                      mb: 3,
+                      textShadow: '0 0 20px rgba(22, 224, 255, 0.5)'
+                    }}>
+                      Auction No: {currentPlayer.serialNumber || currentPlayer.id || 'N/A'}
+                    </Typography>
+
                     {/* Category & Club Badges - Different colors for visibility */}
-                    <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', mb: 3 }}>
+                    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', mb: 3, flexWrap: 'wrap' }}>
                       <Chip
                         label={currentPlayer.category}
                         sx={{
@@ -1057,9 +1126,9 @@ export const AuctionShowcaseView: React.FC<AuctionShowcaseViewProps> = ({ auctio
                           color: '#10B981',
                           border: '2px solid rgba(16, 185, 129, 0.5)',
                           fontWeight: 800,
-                          fontSize: '1.2rem',
-                          px: 3,
-                          py: 1.5,
+                          fontSize: { xs: '0.75rem', sm: '0.9rem', md: '1.2rem' },
+                          px: { xs: 1.5, sm: 2, md: 3 },
+                          py: { xs: 0.75, sm: 1, md: 1.5 },
                           borderRadius: 2,
                           height: 'auto',
                           textShadow: '0 0 10px rgba(16, 185, 129, 0.3)'
@@ -1073,9 +1142,9 @@ export const AuctionShowcaseView: React.FC<AuctionShowcaseViewProps> = ({ auctio
                             color: '#F59E0B',
                             border: '2px solid rgba(245, 158, 11, 0.5)',
                             fontWeight: 800,
-                            fontSize: '1.2rem',
-                            px: 3,
-                            py: 1.5,
+                            fontSize: { xs: '0.75rem', sm: '0.9rem', md: '1.2rem' },
+                            px: { xs: 1.5, sm: 2, md: 3 },
+                            py: { xs: 0.75, sm: 1, md: 1.5 },
                             borderRadius: 2,
                             height: 'auto',
                             textShadow: '0 0 10px rgba(245, 158, 11, 0.3)'

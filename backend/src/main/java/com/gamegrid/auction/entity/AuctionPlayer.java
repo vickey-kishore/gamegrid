@@ -46,6 +46,9 @@ public class AuctionPlayer {
     @Column(name = "is_retained", nullable = false)
     private boolean isRetained = false;
 
+    @Column(name = "serial_number")
+    private Integer serialNumber;
+
     @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;
 }

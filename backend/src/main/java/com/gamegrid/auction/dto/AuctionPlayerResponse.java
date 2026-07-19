@@ -30,4 +30,5 @@ public class AuctionPlayerResponse {
     private String teamName;
     private LocalDateTime soldAt;
     private boolean isRetained;
+    private Integer serialNumber;
 }

@@ -23,6 +23,8 @@ public interface AuctionPlayerRepository extends JpaRepository<AuctionPlayer, Lo
     
     Optional<AuctionPlayer> findByAuctionIdAndPlayerPhoneNumber(Long auctionId, String phoneNumber);
 
+    Optional<AuctionPlayer> findByAuctionIdAndSerialNumber(Long auctionId, Integer serialNumber);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT ap FROM AuctionPlayer ap WHERE ap.auction.id = :auctionId AND ap.player.id = :playerId")
     Optional<AuctionPlayer> findByAuctionIdAndPlayerIdForUpdate(@Param("auctionId") Long auctionId, @Param("playerId") Long playerId);

@@ -408,7 +408,8 @@ public class AuctionService {
                 String searchPattern = "%" + search.toLowerCase() + "%";
                 predicates.add(cb.or(
                     cb.like(cb.lower(root.get("player").get("name")), searchPattern),
-                    cb.like(cb.lower(root.get("player").get("phoneNumber")), searchPattern)
+                    cb.like(cb.lower(root.get("player").get("phoneNumber")), searchPattern),
+                    cb.like(root.get("serialNumber").as(String.class), searchPattern)
                 ));
             }
             return cb.and(predicates.toArray(new Predicate[0]));
@@ -438,6 +439,7 @@ public class AuctionService {
                     .teamName(team != null ? team.getTeamName() : null)
                     .soldAt(ap.getSoldAt())
                     .isRetained(ap.isRetained())
+                    .serialNumber(ap.getSerialNumber())
                     .build();
         }).collect(Collectors.toList());
     }

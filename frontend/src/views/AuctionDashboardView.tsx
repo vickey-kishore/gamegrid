@@ -41,6 +41,8 @@ interface AuctionPlayer {
   soldPrice: number | null;
   teamId: number | null;
   teamName: string | null;
+  serialNumber?: number | null;
+  isRetained?: boolean;
 }
 
 interface BidResponse {
@@ -367,13 +369,16 @@ export const AuctionDashboardView: React.FC<AuctionDashboardViewProps> = ({
       type: 'UPDATE_STATE',
       payload: {
         currentPlayer: currentAP ? {
+          id: currentAP.id,
           playerId: currentAP.playerId,
           name: currentAP.name,
           category: currentAP.category,
           club: currentAP.club,
           photoPath: currentAP.photoPath,
           basePrice: currentAP.basePrice,
-          soldPrice: currentAP.soldPrice
+          soldPrice: currentAP.soldPrice,
+          serialNumber: currentAP.serialNumber,
+          isRetained: currentAP.isRetained
         } : null,
         currentBid: activeBidVal,
         biddingTeam: biddingTeamPayload,
@@ -1260,6 +1265,9 @@ export const AuctionDashboardView: React.FC<AuctionDashboardViewProps> = ({
                             <Typography variant="body2" sx={{ color: '#94a3b8', fontSize: '0.85rem', mb: 2 }}>
                               Lot ID: {currentAP?.id || players.find(p => p.status === 'Available')?.id || 'N/A'}
                             </Typography>
+                            <Typography variant="body2" sx={{ color: '#16E0FF', fontSize: '0.85rem', mb: 2, fontWeight: 600 }}>
+                              Auction No: {currentAP?.serialNumber || 'Loading...'}
+                            </Typography>
 
                             {/* Pricing */}
                             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1.5, mb: 2 }}>
@@ -1530,159 +1538,536 @@ export const AuctionDashboardView: React.FC<AuctionDashboardViewProps> = ({
                   </Box>
                 )}
 
-                {showcaseSlide === 'unsold' && (
-                  <Box sx={{ mb: 2 }}>
-                    <Card sx={{ bgcolor: 'rgba(255,255,255,0.02)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.06)' }}>
-                      <CardContent sx={{ p: 2 }}>
-                        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-                          <FormControl size="small" sx={{ minWidth: 150 }}>
-                            <InputLabel sx={{ color: '#94a3b8', fontSize: '0.85rem' }}>Category</InputLabel>
-                            <Select
-                              value={showcaseCategoryFilter}
-                              onChange={(e) => setShowcaseCategoryFilter(e.target.value)}
-                              label="Category"
-                              sx={{
-                                bgcolor: 'rgba(255,255,255,0.03)',
-                                borderRadius: 2,
-                                '& .MuiOutlinedInput-notchedOutline': {
-                                  borderColor: 'rgba(255,255,255,0.1)',
-                                },
-                                '&:hover .MuiOutlinedInput-notchedOutline': {
-                                  borderColor: 'rgba(22, 224, 255, 0.3)',
-                                },
-                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                  borderColor: '#16E0FF',
-                                  borderWidth: '1px',
-                                },
-                                '& .MuiSelect-select': {
-                                  color: '#ffffff',
-                                  fontSize: '0.85rem',
-                                },
-                              }}
-                            >
-                              <MenuItem value="" sx={{ fontSize: '0.85rem' }}>All Categories</MenuItem>
-                              {Array.from(new Set(players.filter(p => p.status === 'Unsold').map(p => p.category))).map((cat) => (
-                                <MenuItem key={cat} value={cat} sx={{ fontSize: '0.85rem' }}>{cat}</MenuItem>
-                              ))}
-                            </Select>
-                          </FormControl>
+                {showcaseSlide === 'available' && (
+                  <Box sx={{ flexGrow: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                    <Box sx={{ mb: 2 }}>
+                      <Card sx={{ bgcolor: 'rgba(255,255,255,0.02)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <CardContent sx={{ p: 2 }}>
+                          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+                            <FormControl size="small" sx={{ minWidth: 150 }}>
+                              <InputLabel sx={{ color: '#94a3b8', fontSize: '0.85rem' }}>Category</InputLabel>
+                              <Select
+                                value={showcaseCategoryFilter}
+                                onChange={(e) => setShowcaseCategoryFilter(e.target.value)}
+                                label="Category"
+                                sx={{
+                                  bgcolor: 'rgba(255,255,255,0.03)',
+                                  borderRadius: 2,
+                                  '& .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: 'rgba(255,255,255,0.1)',
+                                  },
+                                  '&:hover .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: 'rgba(22, 224, 255, 0.3)',
+                                  },
+                                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: '#16E0FF',
+                                    borderWidth: '1px',
+                                  },
+                                  '& .MuiSelect-select': {
+                                    color: '#ffffff',
+                                    fontSize: '0.85rem',
+                                  },
+                                }}
+                              >
+                                <MenuItem value="" sx={{ fontSize: '0.85rem' }}>All Categories</MenuItem>
+                                {Array.from(new Set(players.filter(p => p.status === 'Available').map(p => p.category))).map((cat) => (
+                                  <MenuItem key={cat} value={cat} sx={{ fontSize: '0.85rem' }}>{cat}</MenuItem>
+                                ))}
+                              </Select>
+                            </FormControl>
 
-                          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', ml: 'auto' }}>
-                            <Button
-                              variant={showcaseLayout === 'grid' ? 'contained' : 'outlined'}
-                              size="small"
-                              onClick={() => {
-                                setShowcaseLayout('grid');
-                                broadcastShowcaseState('Available');
-                              }}
-                              sx={{
-                                textTransform: 'none',
-                                fontSize: '0.85rem',
-                                bgcolor: showcaseLayout === 'grid' ? '#16E0FF' : 'transparent',
-                                color: showcaseLayout === 'grid' ? '#0B1220' : '#ffffff',
-                                borderColor: 'rgba(255,255,255,0.2)',
-                                '&:hover': {
-                                  bgcolor: showcaseLayout === 'grid' ? '#16E0FF' : 'rgba(255,255,255,0.05)',
-                                }
-                              }}
-                            >
-                              Tiles
-                            </Button>
-                            <Button
-                              variant={showcaseLayout === 'individual' ? 'contained' : 'outlined'}
-                              size="small"
-                              onClick={() => {
-                                setShowcaseLayout('individual');
-                                broadcastShowcaseState('Available');
-                              }}
-                              sx={{
-                                textTransform: 'none',
-                                fontSize: '0.85rem',
-                                bgcolor: showcaseLayout === 'individual' ? '#16E0FF' : 'transparent',
-                                color: showcaseLayout === 'individual' ? '#0B1220' : '#ffffff',
-                                borderColor: 'rgba(255,255,255,0.2)',
-                                '&:hover': {
-                                  bgcolor: showcaseLayout === 'individual' ? '#16E0FF' : 'rgba(255,255,255,0.05)',
-                                }
-                              }}
-                            >
-                              List
-                            </Button>
+                            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', ml: 'auto' }}>
+                              <Button
+                                variant={showcaseLayout === 'grid' ? 'contained' : 'outlined'}
+                                size="small"
+                                onClick={() => {
+                                  setShowcaseLayout('grid');
+                                  broadcastShowcaseState('Available');
+                                }}
+                                sx={{
+                                  textTransform: 'none',
+                                  fontSize: '0.85rem',
+                                  bgcolor: showcaseLayout === 'grid' ? '#16E0FF' : 'transparent',
+                                  color: showcaseLayout === 'grid' ? '#0B1220' : '#ffffff',
+                                  borderColor: 'rgba(255,255,255,0.2)',
+                                  '&:hover': {
+                                    bgcolor: showcaseLayout === 'grid' ? '#16E0FF' : 'rgba(255,255,255,0.05)',
+                                  }
+                                }}
+                              >
+                                Tiles
+                              </Button>
+                              <Button
+                                variant={showcaseLayout === 'individual' ? 'contained' : 'outlined'}
+                                size="small"
+                                onClick={() => {
+                                  setShowcaseLayout('individual');
+                                  broadcastShowcaseState('Available');
+                                }}
+                                sx={{
+                                  textTransform: 'none',
+                                  fontSize: '0.85rem',
+                                  bgcolor: showcaseLayout === 'individual' ? '#16E0FF' : 'transparent',
+                                  color: showcaseLayout === 'individual' ? '#0B1220' : '#ffffff',
+                                  borderColor: 'rgba(255,255,255,0.2)',
+                                  '&:hover': {
+                                    bgcolor: showcaseLayout === 'individual' ? '#16E0FF' : 'rgba(255,255,255,0.05)',
+                                  }
+                                }}
+                              >
+                                List
+                              </Button>
+                            </Box>
                           </Box>
-                        </Box>
-                      </CardContent>
-                    </Card>
+                        </CardContent>
+                      </Card>
+                    </Box>
+                    {showcaseLayout === 'grid' ? (
+                      <Box sx={{ flexGrow: 1, minHeight: 0, overflow: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 1.5, alignContent: 'start' }}>
+                        {players
+                          .filter(p => p.status === 'Available')
+                          .filter(p => !showcaseCategoryFilter || p.category?.trim().toLowerCase() === showcaseCategoryFilter.trim().toLowerCase())
+                          .map((player) => (
+                            <Card
+                              key={player.id}
+                              sx={{
+                                bgcolor: 'rgba(255,255,255,0.02)',
+                                borderRadius: 2,
+                                border: '1px solid rgba(255,255,255,0.06)',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                height: 'fit-content',
+                                '&:hover': {
+                                  bgcolor: 'rgba(255,255,255,0.05)',
+                                  borderColor: 'rgba(22, 224, 255, 0.3)'
+                                }
+                              }}
+                            >
+                              <CardContent sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
+                                  <Avatar
+                                    src={player.photoPath ? (player.photoPath.startsWith('http') ? player.photoPath : `${ASSET_BASE_URL}/${player.photoPath}`) : undefined}
+                                    sx={{ width: 40, height: 40, border: '1px solid rgba(255,255,255,0.1)' }}
+                                  >
+                                    <User size={20} />
+                                  </Avatar>
+                                  <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                                    <Typography variant="body2" sx={{ color: '#ffffff', fontWeight: 600, fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                      {player.name}
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ color: '#94a3b8', fontSize: '0.75rem' }}>
+                                      {player.category}
+                                    </Typography>
+                                  </Box>
+                                </Box>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto' }}>
+                                  <Typography variant="body2" sx={{ color: '#16E0FF', fontWeight: 700, fontSize: '0.9rem' }}>
+                                    ₹{player.basePrice?.toLocaleString('en-IN')}
+                                  </Typography>
+                                  <Button
+                                    size="small"
+                                    variant="contained"
+                                    onClick={() => {
+                                      setCurrentAP(player);
+                                      setShowcaseSlide('bidding');
+                                      broadcastShowcaseState('Available');
+                                    }}
+                                    sx={{
+                                      textTransform: 'none',
+                                      fontSize: '0.75rem',
+                                      bgcolor: '#22c55e',
+                                      color: '#ffffff',
+                                      '&:hover': {
+                                        bgcolor: '#16a34a',
+                                      }
+                                    }}
+                                  >
+                                    Bid
+                                  </Button>
+                                </Box>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        {players.filter(p => p.status === 'Available').filter(p => !showcaseCategoryFilter || p.category?.trim().toLowerCase() === showcaseCategoryFilter.trim().toLowerCase()).length === 0 && (
+                          <Box sx={{ gridColumn: '1 / -1', textAlign: 'center', py: 8, color: '#94a3b8' }}>
+                            <Typography variant="body2">No available players found</Typography>
+                          </Box>
+                        )}
+                      </Box>
+                    ) : (
+                      <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 0 }}>
+                        {(() => {
+                          const filtered = players.filter(p => p.status === 'Available').filter(p => !showcaseCategoryFilter || p.category?.trim().toLowerCase() === showcaseCategoryFilter.trim().toLowerCase());
+                          if (filtered.length === 0) {
+                            return (
+                              <Box sx={{ textAlign: 'center', py: 8, color: '#94a3b8' }}>
+                                <Typography variant="body2">No available players found</Typography>
+                              </Box>
+                            );
+                          }
+                          const safeIndex = Math.min(showcaseIndividualIndex, filtered.length - 1);
+                          const player = filtered[safeIndex >= 0 ? safeIndex : 0];
+                          return (
+                            <Box sx={{ width: '100%', maxWidth: '600px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                              <Card sx={{ bgcolor: 'rgba(255,255,255,0.02)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.06)' }}>
+                                <CardContent sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center' }}>
+                                  <Avatar
+                                    src={player.photoPath ? (player.photoPath.startsWith('http') ? player.photoPath : `${ASSET_BASE_URL}/${player.photoPath}`) : undefined}
+                                    sx={{ width: 120, height: 120, border: '2px solid rgba(22, 224, 255, 0.3)' }}
+                                  >
+                                    <User size={60} />
+                                  </Avatar>
+                                  <Box sx={{ textAlign: 'center' }}>
+                                    <Typography variant="h4" sx={{ fontWeight: 700, color: '#ffffff', mb: 0.5 }}>
+                                      {player.name}
+                                    </Typography>
+                                    <Typography variant="body2" sx={{ color: '#94a3b8' }}>
+                                      {player.category}
+                                    </Typography>
+                                  </Box>
+                                  <Box sx={{ textAlign: 'center' }}>
+                                    <Typography variant="h5" sx={{ fontWeight: 700, color: '#16E0FF' }}>
+                                      ₹{player.basePrice?.toLocaleString('en-IN')}
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                      Base Price
+                                    </Typography>
+                                  </Box>
+                                  <Button
+                                    size="large"
+                                    variant="contained"
+                                    onClick={() => {
+                                      setCurrentAP(player);
+                                      setShowcaseSlide('bidding');
+                                      broadcastShowcaseState('Available');
+                                    }}
+                                    sx={{
+                                      textTransform: 'none',
+                                      fontSize: '1rem',
+                                      fontWeight: 'bold',
+                                      bgcolor: '#22c55e',
+                                      color: '#ffffff',
+                                      px: 4,
+                                      '&:hover': {
+                                        bgcolor: '#16a34a',
+                                      }
+                                    }}
+                                  >
+                                    Bid Now
+                                  </Button>
+                                </CardContent>
+                              </Card>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                                <Button
+                                  variant="outlined"
+                                  onClick={() => setShowcaseIndividualIndex(Math.max(0, showcaseIndividualIndex - 1))}
+                                  disabled={showcaseIndividualIndex === 0}
+                                  sx={{
+                                    textTransform: 'none',
+                                    color: '#ffffff',
+                                    borderColor: 'rgba(255,255,255,0.2)',
+                                    '&:hover': {
+                                      borderColor: '#16E0FF',
+                                      bgcolor: 'rgba(22, 224, 255, 0.05)'
+                                    },
+                                    '&:disabled': {
+                                      borderColor: 'rgba(255,255,255,0.1)',
+                                      color: 'rgba(255,255,255,0.3)'
+                                    }
+                                  }}
+                                >
+                                  Previous
+                                </Button>
+                                <Typography variant="body2" sx={{ color: '#94a3b8' }}>
+                                  {showcaseIndividualIndex + 1} / {filtered.length}
+                                </Typography>
+                                <Button
+                                  variant="outlined"
+                                  onClick={() => setShowcaseIndividualIndex(Math.min(filtered.length - 1, showcaseIndividualIndex + 1))}
+                                  disabled={showcaseIndividualIndex >= filtered.length - 1}
+                                  sx={{
+                                    textTransform: 'none',
+                                    color: '#ffffff',
+                                    borderColor: 'rgba(255,255,255,0.2)',
+                                    '&:hover': {
+                                      borderColor: '#16E0FF',
+                                      bgcolor: 'rgba(22, 224, 255, 0.05)'
+                                    },
+                                    '&:disabled': {
+                                      borderColor: 'rgba(255,255,255,0.1)',
+                                      color: 'rgba(255,255,255,0.3)'
+                                    }
+                                  }}
+                                >
+                                  Next
+                                </Button>
+                              </Box>
+                            </Box>
+                          );
+                        })()}
+                      </Box>
+                    )}
                   </Box>
                 )}
 
                 {showcaseSlide === 'unsold' && (
                   <Box sx={{ flexGrow: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                    <Box sx={{ flexGrow: 1, minHeight: 0, overflow: 'auto', display: 'grid', gridTemplateColumns: showcaseLayout === 'grid' ? 'repeat(auto-fill, minmax(200px, 1fr))' : '1fr', gap: 1.5, alignContent: 'start' }}>
-                      {players
-                        .filter(p => p.status === 'Unsold')
-                        .filter(p => !showcaseCategoryFilter || p.category?.trim().toLowerCase() === showcaseCategoryFilter.trim().toLowerCase())
-                        .map((player) => (
-                          <Card
-                            key={player.id}
-                            sx={{
-                              bgcolor: 'rgba(255,255,255,0.02)',
-                              borderRadius: 2,
-                              border: '1px solid rgba(255,255,255,0.06)',
-                              cursor: 'pointer',
-                              transition: 'all 0.2s ease',
-                              height: 'fit-content',
-                              '&:hover': {
-                                bgcolor: 'rgba(255,255,255,0.05)',
-                                borderColor: 'rgba(22, 224, 255, 0.3)'
-                              }
-                            }}
-                          >
-                            <CardContent sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
-                                <Avatar
-                                  src={player.photoPath ? (player.photoPath.startsWith('http') ? player.photoPath : `${ASSET_BASE_URL}/${player.photoPath}`) : undefined}
-                                  sx={{ width: 40, height: 40, border: '1px solid rgba(255,255,255,0.1)' }}
-                                >
-                                  <User size={20} />
-                                </Avatar>
-                                <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                                  <Typography variant="body2" sx={{ color: '#ffffff', fontWeight: 600, fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                    {player.name}
-                                  </Typography>
-                                  <Typography variant="caption" sx={{ color: '#94a3b8', fontSize: '0.75rem' }}>
-                                    {player.category}
-                                  </Typography>
+                    <Box sx={{ mb: 2 }}>
+                      <Card sx={{ bgcolor: 'rgba(255,255,255,0.02)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <CardContent sx={{ p: 2 }}>
+                          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+                            <FormControl size="small" sx={{ minWidth: 150 }}>
+                              <InputLabel sx={{ color: '#94a3b8', fontSize: '0.85rem' }}>Category</InputLabel>
+                              <Select
+                                value={showcaseCategoryFilter}
+                                onChange={(e) => setShowcaseCategoryFilter(e.target.value)}
+                                label="Category"
+                                sx={{
+                                  bgcolor: 'rgba(255,255,255,0.03)',
+                                  borderRadius: 2,
+                                  '& .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: 'rgba(255,255,255,0.1)',
+                                  },
+                                  '&:hover .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: 'rgba(22, 224, 255, 0.3)',
+                                  },
+                                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: '#16E0FF',
+                                    borderWidth: '1px',
+                                  },
+                                  '& .MuiSelect-select': {
+                                    color: '#ffffff',
+                                    fontSize: '0.85rem',
+                                  },
+                                }}
+                              >
+                                <MenuItem value="" sx={{ fontSize: '0.85rem' }}>All Categories</MenuItem>
+                                {Array.from(new Set(players.filter(p => p.status === 'Unsold').map(p => p.category))).map((cat) => (
+                                  <MenuItem key={cat} value={cat} sx={{ fontSize: '0.85rem' }}>{cat}</MenuItem>
+                                ))}
+                              </Select>
+                            </FormControl>
+
+                            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', ml: 'auto' }}>
+                              <Button
+                                variant={showcaseLayout === 'grid' ? 'contained' : 'outlined'}
+                                size="small"
+                                onClick={() => {
+                                  setShowcaseLayout('grid');
+                                  broadcastShowcaseState('Available');
+                                }}
+                                sx={{
+                                  textTransform: 'none',
+                                  fontSize: '0.85rem',
+                                  bgcolor: showcaseLayout === 'grid' ? '#16E0FF' : 'transparent',
+                                  color: showcaseLayout === 'grid' ? '#0B1220' : '#ffffff',
+                                  borderColor: 'rgba(255,255,255,0.2)',
+                                  '&:hover': {
+                                    bgcolor: showcaseLayout === 'grid' ? '#16E0FF' : 'rgba(255,255,255,0.05)',
+                                  }
+                                }}
+                              >
+                                Tiles
+                              </Button>
+                              <Button
+                                variant={showcaseLayout === 'individual' ? 'contained' : 'outlined'}
+                                size="small"
+                                onClick={() => {
+                                  setShowcaseLayout('individual');
+                                  broadcastShowcaseState('Available');
+                                }}
+                                sx={{
+                                  textTransform: 'none',
+                                  fontSize: '0.85rem',
+                                  bgcolor: showcaseLayout === 'individual' ? '#16E0FF' : 'transparent',
+                                  color: showcaseLayout === 'individual' ? '#0B1220' : '#ffffff',
+                                  borderColor: 'rgba(255,255,255,0.2)',
+                                  '&:hover': {
+                                    bgcolor: showcaseLayout === 'individual' ? '#16E0FF' : 'rgba(255,255,255,0.05)',
+                                  }
+                                }}
+                              >
+                                List
+                              </Button>
+                            </Box>
+                          </Box>
+                        </CardContent>
+                      </Card>
+                    </Box>
+                    {showcaseLayout === 'grid' ? (
+                      <Box sx={{ flexGrow: 1, minHeight: 0, overflow: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 1.5, alignContent: 'start' }}>
+                        {players
+                          .filter(p => p.status === 'Unsold')
+                          .filter(p => !showcaseCategoryFilter || p.category?.trim().toLowerCase() === showcaseCategoryFilter.trim().toLowerCase())
+                          .map((player) => (
+                            <Card
+                              key={player.id}
+                              sx={{
+                                bgcolor: 'rgba(255,255,255,0.02)',
+                                borderRadius: 2,
+                                border: '1px solid rgba(255,255,255,0.06)',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                height: 'fit-content',
+                                '&:hover': {
+                                  bgcolor: 'rgba(255,255,255,0.05)',
+                                  borderColor: 'rgba(22, 224, 255, 0.3)'
+                                }
+                              }}
+                            >
+                              <CardContent sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
+                                  <Avatar
+                                    src={player.photoPath ? (player.photoPath.startsWith('http') ? player.photoPath : `${ASSET_BASE_URL}/${player.photoPath}`) : undefined}
+                                    sx={{ width: 40, height: 40, border: '1px solid rgba(255,255,255,0.1)' }}
+                                  >
+                                    <User size={20} />
+                                  </Avatar>
+                                  <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                                    <Typography variant="body2" sx={{ color: '#ffffff', fontWeight: 600, fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                      {player.name}
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ color: '#94a3b8', fontSize: '0.75rem' }}>
+                                      {player.category}
+                                    </Typography>
+                                  </Box>
                                 </Box>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto' }}>
+                                  <Typography variant="body2" sx={{ color: '#ef4444', fontWeight: 700, fontSize: '0.9rem' }}>
+                                    Unsold
+                                  </Typography>
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    onClick={() => handleBidAgain(player)}
+                                    sx={{
+                                      textTransform: 'none',
+                                      fontSize: '0.75rem',
+                                      color: '#16E0FF',
+                                      borderColor: 'rgba(22, 224, 255, 0.3)',
+                                      '&:hover': {
+                                        borderColor: '#16E0FF',
+                                        bgcolor: 'rgba(22, 224, 255, 0.1)'
+                                      }
+                                    }}
+                                  >
+                                    Bid Again
+                                  </Button>
+                                </Box>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        {players.filter(p => p.status === 'Unsold').filter(p => !showcaseCategoryFilter || p.category?.trim().toLowerCase() === showcaseCategoryFilter.trim().toLowerCase()).length === 0 && (
+                          <Box sx={{ gridColumn: '1 / -1', textAlign: 'center', py: 8, color: '#94a3b8' }}>
+                            <Typography variant="body2">No unsold players found</Typography>
+                          </Box>
+                        )}
+                      </Box>
+                    ) : (
+                      <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 0 }}>
+                        {(() => {
+                          const filtered = players.filter(p => p.status === 'Unsold').filter(p => !showcaseCategoryFilter || p.category?.trim().toLowerCase() === showcaseCategoryFilter.trim().toLowerCase());
+                          if (filtered.length === 0) {
+                            return (
+                              <Box sx={{ textAlign: 'center', py: 8, color: '#94a3b8' }}>
+                                <Typography variant="body2">No unsold players found</Typography>
                               </Box>
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto' }}>
-                                <Typography variant="body2" sx={{ color: '#ef4444', fontWeight: 700, fontSize: '0.9rem' }}>
-                                  Unsold
-                                </Typography>
+                            );
+                          }
+                          const safeIndex = Math.min(showcaseIndividualIndex, filtered.length - 1);
+                          const player = filtered[safeIndex >= 0 ? safeIndex : 0];
+                          return (
+                            <Box sx={{ width: '100%', maxWidth: '600px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                              <Card sx={{ bgcolor: 'rgba(255,255,255,0.02)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.06)' }}>
+                                <CardContent sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center' }}>
+                                  <Avatar
+                                    src={player.photoPath ? (player.photoPath.startsWith('http') ? player.photoPath : `${ASSET_BASE_URL}/${player.photoPath}`) : undefined}
+                                    sx={{ width: 120, height: 120, border: '2px solid rgba(239, 68, 68, 0.3)' }}
+                                  >
+                                    <User size={60} />
+                                  </Avatar>
+                                  <Box sx={{ textAlign: 'center' }}>
+                                    <Typography variant="h4" sx={{ fontWeight: 700, color: '#ffffff', mb: 0.5 }}>
+                                      {player.name}
+                                    </Typography>
+                                    <Typography variant="body2" sx={{ color: '#94a3b8' }}>
+                                      {player.category}
+                                    </Typography>
+                                  </Box>
+                                  <Box sx={{ textAlign: 'center' }}>
+                                    <Typography variant="h5" sx={{ fontWeight: 700, color: '#ef4444' }}>
+                                      Unsold
+                                    </Typography>
+                                  </Box>
+                                  <Button
+                                    size="large"
+                                    variant="outlined"
+                                    onClick={() => handleBidAgain(player)}
+                                    sx={{
+                                      textTransform: 'none',
+                                      fontSize: '1rem',
+                                      fontWeight: 'bold',
+                                      color: '#16E0FF',
+                                      borderColor: 'rgba(22, 224, 255, 0.3)',
+                                      px: 4,
+                                      '&:hover': {
+                                        borderColor: '#16E0FF',
+                                        bgcolor: 'rgba(22, 224, 255, 0.1)'
+                                      }
+                                    }}
+                                  >
+                                    Bid Again
+                                  </Button>
+                                </CardContent>
+                              </Card>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
                                 <Button
-                                  size="small"
                                   variant="outlined"
-                                  onClick={() => handleBidAgain(player)}
+                                  onClick={() => setShowcaseIndividualIndex(Math.max(0, showcaseIndividualIndex - 1))}
+                                  disabled={showcaseIndividualIndex === 0}
                                   sx={{
                                     textTransform: 'none',
-                                    fontSize: '0.75rem',
-                                    color: '#16E0FF',
-                                    borderColor: 'rgba(22, 224, 255, 0.3)',
+                                    color: '#ffffff',
+                                    borderColor: 'rgba(255,255,255,0.2)',
                                     '&:hover': {
                                       borderColor: '#16E0FF',
-                                      bgcolor: 'rgba(22, 224, 255, 0.1)'
+                                      bgcolor: 'rgba(22, 224, 255, 0.05)'
+                                    },
+                                    '&:disabled': {
+                                      borderColor: 'rgba(255,255,255,0.1)',
+                                      color: 'rgba(255,255,255,0.3)'
                                     }
                                   }}
                                 >
-                                  Bid Again
+                                  Previous
+                                </Button>
+                                <Typography variant="body2" sx={{ color: '#94a3b8' }}>
+                                  {showcaseIndividualIndex + 1} / {filtered.length}
+                                </Typography>
+                                <Button
+                                  variant="outlined"
+                                  onClick={() => setShowcaseIndividualIndex(Math.min(filtered.length - 1, showcaseIndividualIndex + 1))}
+                                  disabled={showcaseIndividualIndex >= filtered.length - 1}
+                                  sx={{
+                                    textTransform: 'none',
+                                    color: '#ffffff',
+                                    borderColor: 'rgba(255,255,255,0.2)',
+                                    '&:hover': {
+                                      borderColor: '#16E0FF',
+                                      bgcolor: 'rgba(22, 224, 255, 0.05)'
+                                    },
+                                    '&:disabled': {
+                                      borderColor: 'rgba(255,255,255,0.1)',
+                                      color: 'rgba(255,255,255,0.3)'
+                                    }
+                                  }}
+                                >
+                                  Next
                                 </Button>
                               </Box>
-                            </CardContent>
-                          </Card>
-                        ))}
-                    </Box>
-                    {players.filter(p => p.status === 'Unsold').filter(p => !showcaseCategoryFilter || p.category?.trim().toLowerCase() === showcaseCategoryFilter.trim().toLowerCase()).length === 0 && (
-                      <Box sx={{ textAlign: 'center', py: 8, color: '#94a3b8' }}>
-                        <Typography variant="body2">No unsold players found</Typography>
+                            </Box>
+                          );
+                        })()}
                       </Box>
                     )}
                   </Box>
@@ -1807,7 +2192,7 @@ export const AuctionDashboardView: React.FC<AuctionDashboardViewProps> = ({
                   </Box>
                 )}
 
-                {showcaseSlide !== 'bidding' && showcaseSlide !== 'unsold' && showcaseSlide !== 'rosters' && (
+                {showcaseSlide !== 'bidding' && showcaseSlide !== 'unsold' && showcaseSlide !== 'rosters' && showcaseSlide !== 'available' && (
                   <Box sx={{ flexGrow: 1, minHeight: 0, overflow: 'hidden', position: 'relative', bgcolor: 'rgba(0,0,0,0.4)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.05)' }}>
                     <AuctionShowcaseView auctionId={auctionId} />
                   </Box>
@@ -1820,6 +2205,12 @@ export const AuctionDashboardView: React.FC<AuctionDashboardViewProps> = ({
                       /* Single Team View */
                       teams.filter(t => t.id === showcaseTeamId).map((team) => {
                         const teamPlayers = players.filter(p => p.teamId === team.id && p.status === 'Sold');
+                        // Calculate squad size based on category rules
+                        const minSquadSize = auction?.rosterRules?.reduce((sum: number, rule: any) => sum + (rule.minCount || 0), 0) || 0;
+                        const maxSquadSize = auction?.rosterRules?.reduce((sum: number, rule: any) => sum + (rule.maxCount || 0), 0) || 0;
+                        const showRange = minSquadSize !== maxSquadSize;
+                        const squadSizeDisplay = showRange ? `${minSquadSize} - ${maxSquadSize}` : `${minSquadSize}`;
+
                         return (
                           <Card key={team.id} sx={{ border: '1px solid rgba(255,255,255,0.06)', bgcolor: 'rgba(255,255,255,0.02)', borderRadius: 2, p: 3, mb: 2 }}>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -1835,7 +2226,7 @@ export const AuctionDashboardView: React.FC<AuctionDashboardViewProps> = ({
                                     {team.teamName}
                                   </Typography>
                                   <Typography variant="caption" sx={{ color: '#94a3b8' }}>
-                                    {team.playersCount} / {team.minimumPlayers} players
+                                    {team.playersCount} / {squadSizeDisplay} players
                                   </Typography>
                                 </Box>
                               </Box>
@@ -1850,64 +2241,93 @@ export const AuctionDashboardView: React.FC<AuctionDashboardViewProps> = ({
                             </Box>
 
                             {teamPlayers.length > 0 ? (
-                              showcaseLayout === 'grid' ? (
-                                /* Grid View for single team */
-                                <Grid container spacing={2}>
-                                  {teamPlayers
-                                    .filter(p => !showcaseCategoryFilter || p.category === showcaseCategoryFilter)
-                                    .map((player) => (
-                                      <Grid size={{ xs: 12, sm: 6, md: 4 }} key={player.id}>
-                                        <Card sx={{ border: '1px solid rgba(255,255,255,0.06)', bgcolor: 'rgba(255,255,255,0.02)', borderRadius: 2, p: 2 }}>
-                                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                                            <Avatar
-                                              src={player.photoPath ? (player.photoPath.startsWith('http') ? player.photoPath : `${ASSET_BASE_URL}/${player.photoPath}`) : undefined}
-                                              sx={{ width: 40, height: 40, border: '2px solid rgba(22, 224, 255, 0.3)' }}
-                                            >
-                                              {(player.name || '').substring(0, 2).toUpperCase()}
-                                            </Avatar>
-                                            <Box>
-                                              <Typography variant="body1" sx={{ fontWeight: 600, color: '#ffffff', fontSize: '0.9rem' }}>
-                                                {player.name}
-                                              </Typography>
-                                              <Typography variant="caption" sx={{ color: '#94a3b8', fontSize: '0.75rem' }}>
-                                                {player.category}
-                                              </Typography>
-                                            </Box>
-                                          </Box>
-                                          <Typography variant="body2" sx={{ color: '#22c55e', fontWeight: 600, fontSize: '0.85rem' }}>
-                                            ₹{player.soldPrice?.toLocaleString('en-IN') || '0'}
-                                          </Typography>
-                                        </Card>
-                                      </Grid>
+                              (() => {
+                                const filteredPlayers = teamPlayers.filter(p => !showcaseCategoryFilter || p.category === showcaseCategoryFilter);
+                                const groupedByCategory = filteredPlayers.reduce((acc, player) => {
+                                  const category = player.category || 'Uncategorized';
+                                  if (!acc[category]) {
+                                    acc[category] = [];
+                                  }
+                                  acc[category].push(player);
+                                  return acc;
+                                }, {} as Record<string, typeof teamPlayers>);
+
+                                if (filteredPlayers.length === 0) {
+                                  return (
+                                    <Typography variant="body2" sx={{ color: '#94a3b8', textAlign: 'center', py: 4 }}>
+                                      No players in this category
+                                    </Typography>
+                                  );
+                                }
+
+                                return showcaseLayout === 'grid' ? (
+                                  /* Grid View for single team grouped by category */
+                                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                                    {Object.entries(groupedByCategory).map(([category, categoryPlayers]) => (
+                                      <Box key={category}>
+                                        <Typography variant="h6" sx={{ fontWeight: 700, color: '#16E0FF', mb: 2, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                          {category}
+                                        </Typography>
+                                        <Grid container spacing={2}>
+                                          {categoryPlayers.map((player) => (
+                                            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={player.id}>
+                                              <Card sx={{ border: '1px solid rgba(255,255,255,0.06)', bgcolor: 'rgba(255,255,255,0.02)', borderRadius: 2, p: 2 }}>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                                                  <Avatar
+                                                    src={player.photoPath ? (player.photoPath.startsWith('http') ? player.photoPath : `${ASSET_BASE_URL}/${player.photoPath}`) : undefined}
+                                                    sx={{ width: 40, height: 40, border: '2px solid rgba(22, 224, 255, 0.3)' }}
+                                                  >
+                                                    {(player.name || '').substring(0, 2).toUpperCase()}
+                                                  </Avatar>
+                                                  <Box>
+                                                    <Typography variant="body1" sx={{ fontWeight: 600, color: '#ffffff', fontSize: '0.9rem' }}>
+                                                      {player.name}
+                                                    </Typography>
+                                                  </Box>
+                                                </Box>
+                                                <Typography variant="body2" sx={{ color: '#22c55e', fontWeight: 600, fontSize: '0.85rem' }}>
+                                                  ₹{player.soldPrice?.toLocaleString('en-IN') || '0'}
+                                                </Typography>
+                                              </Card>
+                                            </Grid>
+                                          ))}
+                                        </Grid>
+                                      </Box>
                                     ))}
-                                </Grid>
-                              ) : (
-                                /* List View for single team */
-                                <TableContainer sx={{ bgcolor: 'rgba(255,255,255,0.01)', borderRadius: 2 }}>
-                                  <Table size="small">
-                                    <TableHead>
-                                      <TableRow>
-                                        <TableCell sx={{ color: '#94a3b8', fontWeight: 600 }}>Player</TableCell>
-                                        <TableCell sx={{ color: '#94a3b8', fontWeight: 600 }}>Category</TableCell>
-                                        <TableCell sx={{ color: '#94a3b8', fontWeight: 600 }}>Sold Price</TableCell>
-                                      </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                      {teamPlayers
-                                        .filter(p => !showcaseCategoryFilter || p.category === showcaseCategoryFilter)
-                                        .map((player) => (
-                                          <TableRow key={player.id}>
-                                            <TableCell sx={{ color: '#ffffff' }}>{player.name}</TableCell>
-                                            <TableCell sx={{ color: '#94a3b8' }}>{player.category}</TableCell>
-                                            <TableCell sx={{ color: '#22c55e', fontWeight: 600 }}>
-                                              ₹{player.soldPrice?.toLocaleString('en-IN') || '0'}
-                                            </TableCell>
-                                          </TableRow>
-                                        ))}
-                                    </TableBody>
-                                  </Table>
-                                </TableContainer>
-                              )
+                                  </Box>
+                                ) : (
+                                  /* List View for single team grouped by category */
+                                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                                    {Object.entries(groupedByCategory).map(([category, categoryPlayers]) => (
+                                      <Box key={category}>
+                                        <Typography variant="h6" sx={{ fontWeight: 700, color: '#16E0FF', mb: 2, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                          {category}
+                                        </Typography>
+                                        <TableContainer sx={{ bgcolor: 'rgba(255,255,255,0.01)', borderRadius: 2 }}>
+                                          <Table size="small">
+                                            <TableHead>
+                                              <TableRow>
+                                                <TableCell sx={{ color: '#94a3b8', fontWeight: 600 }}>Player</TableCell>
+                                                <TableCell sx={{ color: '#94a3b8', fontWeight: 600 }}>Sold Price</TableCell>
+                                              </TableRow>
+                                            </TableHead>
+                                            <TableBody>
+                                              {categoryPlayers.map((player) => (
+                                                <TableRow key={player.id}>
+                                                  <TableCell sx={{ color: '#ffffff' }}>{player.name}</TableCell>
+                                                  <TableCell sx={{ color: '#22c55e', fontWeight: 600 }}>
+                                                    ₹{player.soldPrice?.toLocaleString('en-IN') || '0'}
+                                                  </TableCell>
+                                                </TableRow>
+                                              ))}
+                                            </TableBody>
+                                          </Table>
+                                        </TableContainer>
+                                      </Box>
+                                    ))}
+                                  </Box>
+                                );
+                              })()
                             ) : (
                               <Typography variant="body2" sx={{ color: '#94a3b8', textAlign: 'center', py: 4 }}>
                                 No players purchased yet
@@ -1923,6 +2343,21 @@ export const AuctionDashboardView: React.FC<AuctionDashboardViewProps> = ({
                         <Grid container spacing={2}>
                           {teams.map((team) => {
                             const teamPlayers = players.filter(p => p.teamId === team.id && p.status === 'Sold');
+                            const filteredPlayers = teamPlayers.filter(p => !showcaseCategoryFilter || p.category === showcaseCategoryFilter);
+                            const groupedByCategory = filteredPlayers.reduce((acc, player) => {
+                              const category = player.category || 'Uncategorized';
+                              if (!acc[category]) {
+                                acc[category] = [];
+                              }
+                              acc[category].push(player);
+                              return acc;
+                            }, {} as Record<string, typeof teamPlayers>);
+                            // Calculate squad size based on category rules
+                            const minSquadSize = auction?.rosterRules?.reduce((sum: number, rule: any) => sum + (rule.minCount || 0), 0) || 0;
+                            const maxSquadSize = auction?.rosterRules?.reduce((sum: number, rule: any) => sum + (rule.maxCount || 0), 0) || 0;
+                            const showRange = minSquadSize !== maxSquadSize;
+                            const squadSizeDisplay = showRange ? `${minSquadSize} - ${maxSquadSize}` : `${minSquadSize}`;
+
                             return (
                               <Grid size={{ xs: 12, sm: 6, md: 4 }} key={team.id}>
                                 <Card sx={{ border: '1px solid rgba(255,255,255,0.06)', bgcolor: 'rgba(255,255,255,0.02)', borderRadius: 2, p: 2 }}>
@@ -1938,29 +2373,36 @@ export const AuctionDashboardView: React.FC<AuctionDashboardViewProps> = ({
                                         {team.teamName}
                                       </Typography>
                                       <Typography variant="caption" sx={{ color: '#94a3b8', fontSize: '0.75rem' }}>
-                                        {team.playersCount} / {team.minimumPlayers}
+                                        {team.playersCount} / {squadSizeDisplay}
                                       </Typography>
                                     </Box>
                                   </Box>
 
-                                  {teamPlayers.length > 0 ? (
-                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                                      {teamPlayers
-                                        .filter(p => !showcaseCategoryFilter || p.category === showcaseCategoryFilter)
-                                        .map((player) => (
-                                          <Box key={player.id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1, bgcolor: 'rgba(255,255,255,0.02)', borderRadius: 1 }}>
-                                            <Typography variant="body2" sx={{ color: '#ffffff', fontSize: '0.85rem' }}>
-                                              {player.name}
-                                            </Typography>
-                                            <Typography variant="caption" sx={{ color: '#22c55e', fontWeight: 600, fontSize: '0.8rem' }}>
-                                              ₹{player.soldPrice?.toLocaleString('en-IN') || '0'}
-                                            </Typography>
+                                  {filteredPlayers.length > 0 ? (
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                      {Object.entries(groupedByCategory).map(([category, categoryPlayers]) => (
+                                        <Box key={category}>
+                                          <Typography variant="caption" sx={{ color: '#16E0FF', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', mb: 1, display: 'block' }}>
+                                            {category}
+                                          </Typography>
+                                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                            {categoryPlayers.map((player) => (
+                                              <Box key={player.id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1, bgcolor: 'rgba(255,255,255,0.02)', borderRadius: 1 }}>
+                                                <Typography variant="body2" sx={{ color: '#ffffff', fontSize: '0.85rem' }}>
+                                                  {player.name}
+                                                </Typography>
+                                                <Typography variant="caption" sx={{ color: '#22c55e', fontWeight: 600, fontSize: '0.8rem' }}>
+                                                  ₹{player.soldPrice?.toLocaleString('en-IN') || '0'}
+                                                </Typography>
+                                              </Box>
+                                            ))}
                                           </Box>
-                                        ))}
+                                        </Box>
+                                      ))}
                                     </Box>
                                   ) : (
                                     <Typography variant="caption" sx={{ color: '#94a3b8', textAlign: 'center', py: 2 }}>
-                                      No players
+                                      No players in this category
                                     </Typography>
                                   )}
                                 </Card>
@@ -1973,6 +2415,21 @@ export const AuctionDashboardView: React.FC<AuctionDashboardViewProps> = ({
                         <Grid container spacing={2}>
                           {teams.map((team) => {
                             const teamPlayers = players.filter(p => p.teamId === team.id && p.status === 'Sold');
+                            const filteredPlayers = teamPlayers.filter(p => !showcaseCategoryFilter || p.category === showcaseCategoryFilter);
+                            const groupedByCategory = filteredPlayers.reduce((acc, player) => {
+                              const category = player.category || 'Uncategorized';
+                              if (!acc[category]) {
+                                acc[category] = [];
+                              }
+                              acc[category].push(player);
+                              return acc;
+                            }, {} as Record<string, typeof teamPlayers>);
+                            // Calculate squad size based on category rules
+                            const minSquadSize = auction?.rosterRules?.reduce((sum: number, rule: any) => sum + (rule.minCount || 0), 0) || 0;
+                            const maxSquadSize = auction?.rosterRules?.reduce((sum: number, rule: any) => sum + (rule.maxCount || 0), 0) || 0;
+                            const showRange = minSquadSize !== maxSquadSize;
+                            const squadSizeDisplay = showRange ? `${minSquadSize} - ${maxSquadSize}` : `${minSquadSize}`;
+
                             return (
                               <Grid size={{ xs: 12 }} key={team.id}>
                                 <Card sx={{ border: '1px solid rgba(255,255,255,0.06)', bgcolor: 'rgba(255,255,255,0.02)', borderRadius: 2, p: 3 }}>
@@ -1989,7 +2446,7 @@ export const AuctionDashboardView: React.FC<AuctionDashboardViewProps> = ({
                                           {team.teamName}
                                         </Typography>
                                         <Typography variant="caption" sx={{ color: '#94a3b8' }}>
-                                          {team.playersCount} / {team.minimumPlayers} players
+                                          {team.playersCount} / {squadSizeDisplay} players
                                         </Typography>
                                       </Box>
                                     </Box>
@@ -2003,34 +2460,39 @@ export const AuctionDashboardView: React.FC<AuctionDashboardViewProps> = ({
                                     </Box>
                                   </Box>
 
-                                  {teamPlayers.length > 0 ? (
-                                    <TableContainer sx={{ bgcolor: 'rgba(255,255,255,0.01)', borderRadius: 2 }}>
-                                      <Table size="small">
-                                        <TableHead>
-                                          <TableRow>
-                                            <TableCell sx={{ color: '#94a3b8', fontWeight: 600 }}>Player</TableCell>
-                                            <TableCell sx={{ color: '#94a3b8', fontWeight: 600 }}>Category</TableCell>
-                                            <TableCell sx={{ color: '#94a3b8', fontWeight: 600 }}>Sold Price</TableCell>
-                                          </TableRow>
-                                        </TableHead>
-                                        <TableBody>
-                                          {teamPlayers
-                                            .filter(p => !showcaseCategoryFilter || p.category === showcaseCategoryFilter)
-                                            .map((player) => (
-                                              <TableRow key={player.id}>
-                                                <TableCell sx={{ color: '#ffffff' }}>{player.name}</TableCell>
-                                                <TableCell sx={{ color: '#94a3b8' }}>{player.category}</TableCell>
-                                                <TableCell sx={{ color: '#22c55e', fontWeight: 600 }}>
-                                                  ₹{player.soldPrice?.toLocaleString('en-IN') || '0'}
-                                                </TableCell>
-                                              </TableRow>
-                                            ))}
-                                        </TableBody>
-                                      </Table>
-                                    </TableContainer>
+                                  {filteredPlayers.length > 0 ? (
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                                      {Object.entries(groupedByCategory).map(([category, categoryPlayers]) => (
+                                        <Box key={category}>
+                                          <Typography variant="h6" sx={{ fontWeight: 700, color: '#16E0FF', mb: 2, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                            {category}
+                                          </Typography>
+                                          <TableContainer sx={{ bgcolor: 'rgba(255,255,255,0.01)', borderRadius: 2 }}>
+                                            <Table size="small">
+                                              <TableHead>
+                                                <TableRow>
+                                                  <TableCell sx={{ color: '#94a3b8', fontWeight: 600 }}>Player</TableCell>
+                                                  <TableCell sx={{ color: '#94a3b8', fontWeight: 600 }}>Sold Price</TableCell>
+                                                </TableRow>
+                                              </TableHead>
+                                              <TableBody>
+                                                {categoryPlayers.map((player) => (
+                                                  <TableRow key={player.id}>
+                                                    <TableCell sx={{ color: '#ffffff' }}>{player.name}</TableCell>
+                                                    <TableCell sx={{ color: '#22c55e', fontWeight: 600 }}>
+                                                      ₹{player.soldPrice?.toLocaleString('en-IN') || '0'}
+                                                    </TableCell>
+                                                  </TableRow>
+                                                ))}
+                                              </TableBody>
+                                            </Table>
+                                          </TableContainer>
+                                        </Box>
+                                      ))}
+                                    </Box>
                                   ) : (
                                     <Typography variant="body2" sx={{ color: '#94a3b8', textAlign: 'center', py: 4 }}>
-                                      No players purchased yet
+                                      No players in this category
                                     </Typography>
                                   )}
                                 </Card>
@@ -2326,3 +2788,5 @@ export const AuctionDashboardView: React.FC<AuctionDashboardViewProps> = ({
 };
 
 export default AuctionDashboardView;
+
+

@@ -36,6 +36,7 @@ interface AuctionPlayerResponse {
   isRetained?: boolean;
   teamName?: string | null;
   soldPrice?: number | null;
+  serialNumber?: number | null;
 }
 
 export const ManagePlayersDialog: React.FC<ManagePlayersDialogProps> = ({
@@ -279,14 +280,52 @@ export const ManagePlayersDialog: React.FC<ManagePlayersDialogProps> = ({
       day: 'numeric'
     });
 
-    const rowsHtml = filteredPlayers.map((ap, index) => `
-      <tr>
-        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center;">${index + 1}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">${ap.name}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center;">${ap.category}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center;">${ap.club || '—'}</td>
-      </tr>
-    `).join('');
+    // Group players by category
+    const playersByCategory: Record<string, any[]> = filteredPlayers.reduce((acc: Record<string, any[]>, ap: any) => {
+      if (!acc[ap.category]) {
+        acc[ap.category] = [];
+      }
+      acc[ap.category].push(ap);
+      return acc;
+    }, {} as Record<string, any[]>);
+
+    // Calculate continuous serial number
+    let globalSerialNumber = 1;
+
+    // Generate HTML for each category section
+    const categorySections = Object.entries(playersByCategory).map(([category, players]: [string, any[]], sectionIndex: number) => {
+      const rowsHtml = players.map((ap: any) => {
+        const serialNum = ap.serialNumber || globalSerialNumber++;
+        return `
+        <tr>
+          <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center;">${serialNum}</td>
+          <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">${ap.name}</td>
+          <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center;">${ap.category}</td>
+          <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center;">${ap.club || '—'}</td>
+        </tr>
+      `;
+      }).join('');
+
+      const pageBreakStyle = sectionIndex > 0 ? 'page-break-before: always;' : '';
+
+      return `
+        <div style="${pageBreakStyle} margin-top: ${sectionIndex > 0 ? '40px' : '0'};">
+          <table class="players-table">
+            <thead>
+              <tr>
+                <th style="width: 80px;">Auction No</th>
+                <th style="text-align: left;">Player Name</th>
+                <th style="width: 180px;">Category</th>
+                <th style="width: 180px;">Club</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }).join('');
 
     const htmlContent = `
       <html>
@@ -405,20 +444,8 @@ export const ManagePlayersDialog: React.FC<ManagePlayersDialogProps> = ({
                     <h1>${auctionName}</h1>
                     <p>Official Players Registry Pool List</p>
                   </div>
-                  
-                  <table class="players-table">
-                    <thead>
-                      <tr>
-                        <th style="width: 80px;">S.No</th>
-                        <th style="text-align: left;">Player Name</th>
-                        <th style="width: 180px;">Category</th>
-                        <th style="width: 180px;">Club</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      ${rowsHtml}
-                    </tbody>
-                  </table>
+
+                  ${categorySections}
                 </td>
               </tr>
             </tbody>
@@ -449,7 +476,8 @@ export const ManagePlayersDialog: React.FC<ManagePlayersDialogProps> = ({
     const matchesSearch =
       (p.name?.toLowerCase().includes(search.toLowerCase())) ||
       (p.phoneNumber?.includes(search)) ||
-      (p.email?.toLowerCase().includes(search.toLowerCase()));
+      (p.email?.toLowerCase().includes(search.toLowerCase())) ||
+      (p.serialNumber?.toString().includes(search));
 
     const matchesCat = filterCategory === 'ALL' ||
       p.category?.replace(/\s+/g, ' ').trim().toLowerCase() === filterCategory.replace(/\s+/g, ' ').trim().toLowerCase();
@@ -479,7 +507,7 @@ export const ManagePlayersDialog: React.FC<ManagePlayersDialogProps> = ({
           <Box sx={{ display: 'flex', gap: 1.5, flex: 1, alignItems: 'center', minWidth: { xs: '100%', md: 'auto' } }}>
             <TextField
               label="Search Players"
-              placeholder="Name, phone or email..."
+              placeholder="Name, phone, email or serial no..."
               size="small"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -571,7 +599,7 @@ export const ManagePlayersDialog: React.FC<ManagePlayersDialogProps> = ({
             <Table size="small">
               <TableHead>
                 <TableRow sx={{ bgcolor: 'rgba(255, 255, 255, 0.02)' }}>
-                  <TableCell sx={{ fontWeight: 'bold', color: 'primary.main', borderBottom: '1px solid rgba(255,255,255,0.08)', width: '60px' }}>S.No</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', color: 'primary.main', borderBottom: '1px solid rgba(255,255,255,0.08)', width: '80px' }}>Auction No</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', color: 'primary.main', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>Player Name</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', color: 'primary.main', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>Category</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', color: 'primary.main', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>Club</TableCell>
@@ -583,7 +611,7 @@ export const ManagePlayersDialog: React.FC<ManagePlayersDialogProps> = ({
               <TableBody>
                 {filteredPlayers.map((ap, index) => (
                   <TableRow key={ap.id} hover sx={{ '&:hover': { bgcolor: 'rgba(255,255,255,0.02)' } }}>
-                    <TableCell sx={{ fontWeight: 600, color: '#f1f5f9', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>{index + 1}</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: '#f1f5f9', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>{ap.serialNumber || index + 1}</TableCell>
                     <TableCell sx={{ py: 1.5, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         <Avatar src={ap.photoPath ? (ap.photoPath.startsWith('http') ? ap.photoPath : `${ASSET_BASE_URL}/${ap.photoPath}`) : undefined} sx={{ width: 30, height: 30 }}>

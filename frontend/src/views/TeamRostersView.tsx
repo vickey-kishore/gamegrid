@@ -123,21 +123,24 @@ export const TeamRostersView: React.FC<TeamRostersViewProps> = ({
         </tr>
       `).join('') || `<tr><td colspan="5" style="text-align: center; color: #94a3b8; font-style: italic; padding: 20px;">No players purchased yet.</td></tr>`;
 
+      const logoSrc = roster.logoPath ? (roster.logoPath.startsWith('http') ? roster.logoPath : `${ASSET_BASE_URL}/${roster.logoPath}`) : '';
+
       return `
         <div class="team-section">
           <div class="team-header">
+            ${logoSrc ? `<img src="${logoSrc}" class="team-logo" alt="${roster.teamName}" />` : ''}
             <h2 class="team-name">${roster.teamName}</h2>
           </div>
-          
+
           <div class="team-summary">
             <span>Total Budget: <strong>₹${roster.purseAmount.toLocaleString('en-IN')}</strong></span>
             <span>Spent: <strong>₹${roster.totalSpent.toLocaleString('en-IN')}</strong></span>
             <span>Remaining Purse: <strong style="color: #16a34a;">₹${roster.remainingPurse.toLocaleString('en-IN')}</strong></span>
             <span>Squad Size: <strong>${roster.totalPlayersPurchased}</strong></span>
           </div>
-          
+
           ${ruleMetadataHtml ? `<div class="category-quotas">${ruleMetadataHtml}</div>` : ''}
-          
+
           <table class="players-table">
             <thead>
               <tr>
@@ -166,7 +169,7 @@ export const TeamRostersView: React.FC<TeamRostersViewProps> = ({
             html, body {
               font-family: 'Inter', sans-serif;
               color: #ffffff;
-              background-color: #0b0f19;
+              background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
               color-adjust: exact !important;
@@ -181,18 +184,18 @@ export const TeamRostersView: React.FC<TeamRostersViewProps> = ({
               margin: 0 1.6cm;
               padding-top: 1.5cm;
               padding-bottom: 1.5cm;
-              background-color: #0b0f19 !important;
+              background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%) !important;
             }
             .print-watermark {
               position: fixed;
               top: 50%;
               left: 50%;
               transform: translate(-50%, -50%) rotate(-45deg);
-              font-size: 7rem;
-              color: rgba(255, 255, 255, 0.02);
+              font-size: 8rem;
+              color: rgba(99, 102, 241, 0.08);
               font-family: 'Rajdhani', sans-serif;
               font-weight: 900;
-              letter-spacing: 5px;
+              letter-spacing: 8px;
               text-transform: uppercase;
               white-space: nowrap;
               z-index: -1000;
@@ -201,110 +204,156 @@ export const TeamRostersView: React.FC<TeamRostersViewProps> = ({
             .header {
               text-align: center;
               margin-bottom: 2.5rem;
+              position: relative;
             }
             .header h1 {
               font-family: 'Rajdhani', sans-serif;
               font-weight: 800;
-              font-size: 2.2rem;
+              font-size: 2.5rem;
               margin: 0;
-              color: #ffffff;
+              background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+              -webkit-background-clip: text;
+              -webkit-text-fill-color: transparent;
+              background-clip: text;
               text-transform: uppercase;
-              letter-spacing: 1px;
+              letter-spacing: 2px;
             }
             .header p {
-              font-size: 0.95rem;
+              font-size: 1rem;
               color: #94a3b8;
-              margin: 5px 0 0 0;
+              margin: 8px 0 0 0;
               font-weight: 500;
+              letter-spacing: 0.5px;
             }
-            
+            .header::after {
+              content: '';
+              display: block;
+              width: 200px;
+              height: 3px;
+              background: linear-gradient(90deg, #6366f1, #a855f7, #ec4899);
+              margin: 20px auto 0;
+              border-radius: 2px;
+            }
+
             .team-section {
+              margin-top: 1.5cm;
               margin-bottom: 3.5rem;
               page-break-inside: avoid;
-              border: 1px solid rgba(255, 255, 255, 0.06);
-              border-radius: 8px;
-              padding: 1.5rem;
-              background-color: #141B2D;
+              page-break-after: always;
+              border: 1px solid rgba(99, 102, 241, 0.2);
+              border-radius: 12px;
+              padding: 2rem;
+              background: linear-gradient(135deg, rgba(30, 27, 75, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
+              box-shadow: 0 4px 20px rgba(99, 102, 241, 0.15);
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
               color-adjust: exact !important;
             }
+            .team-section:first-child {
+              margin-top: 0;
+            }
+            .team-section:last-child {
+              page-break-after: auto;
+            }
             .team-header {
               display: flex;
-              justify-content: space-between;
               align-items: center;
-              border-bottom: 2px solid rgba(255, 255, 255, 0.1);
-              padding-bottom: 0.8rem;
-              margin-bottom: 1rem;
+              gap: 1.5rem;
+              border-bottom: 2px solid rgba(99, 102, 241, 0.2);
+              padding-bottom: 1.2rem;
+              margin-bottom: 1.2rem;
+            }
+            .team-logo {
+              width: 70px;
+              height: 70px;
+              object-fit: contain;
+              border-radius: 12px;
+              border: 2px solid rgba(99, 102, 241, 0.4);
+              background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
+              box-shadow: 0 2px 10px rgba(99, 102, 241, 0.2);
             }
             .team-name {
               font-family: 'Rajdhani', sans-serif;
               font-weight: 800;
-              font-size: 1.6rem;
+              font-size: 2rem;
               margin: 0;
-              color: #ffffff;
+              background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
+              -webkit-background-clip: text;
+              -webkit-text-fill-color: transparent;
+              background-clip: text;
             }
             .team-summary {
               display: flex;
-              gap: 2rem;
-              font-size: 0.85rem;
+              gap: 2.5rem;
+              font-size: 0.9rem;
               color: #cbd5e1;
-              margin-bottom: 1rem;
+              margin-bottom: 1.2rem;
               flex-wrap: wrap;
+              padding: 1rem;
+              background: rgba(99, 102, 241, 0.05);
+              border-radius: 8px;
+              border: 1px solid rgba(99, 102, 241, 0.1);
             }
             .team-summary span strong {
               color: #ffffff;
+              font-weight: 600;
             }
-            
+
             .category-quotas {
               display: flex;
               flex-wrap: wrap;
               gap: 0.8rem;
-              margin-bottom: 1.2rem;
+              margin-bottom: 1.5rem;
             }
             .quota-badge {
-              font-size: 0.72rem;
+              font-size: 0.75rem;
               font-weight: 700;
-              padding: 3px 8px;
-              border-radius: 4px;
-              border: 1px solid rgba(255, 255, 255, 0.08);
-              background-color: rgba(255, 255, 255, 0.03);
+              padding: 6px 12px;
+              border-radius: 6px;
+              border: 1px solid rgba(99, 102, 241, 0.2);
+              background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
               color-adjust: exact !important;
             }
-            
+
             .players-table {
               width: 100%;
               border-collapse: collapse;
               margin-top: 0.5rem;
+              border-radius: 8px;
+              overflow: hidden;
             }
             .players-table th {
-              background-color: #1e293b;
-              color: #94a3b8;
-              font-size: 0.78rem;
+              background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(168, 85, 247, 0.2) 100%);
+              color: #e2e8f0;
+              font-size: 0.8rem;
               font-weight: 700;
               text-transform: uppercase;
-              padding: 8px 10px;
-              border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+              padding: 12px 14px;
+              border-bottom: 2px solid rgba(99, 102, 241, 0.3);
               text-align: left;
+              letter-spacing: 0.5px;
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
               color-adjust: exact !important;
             }
             .players-table td {
-              padding: 8px 10px;
-              border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-              font-size: 0.82rem;
+              padding: 12px 14px;
+              border-bottom: 1px solid rgba(99, 102, 241, 0.1);
+              font-size: 0.85rem;
               color: #e2e8f0;
+            }
+            .players-table tr:hover {
+              background: rgba(99, 102, 241, 0.05);
             }
             .players-table tr:last-child td {
               border-bottom: none;
             }
             .players-table .sno {
-              color: #64748b;
+              color: #94a3b8;
               font-weight: 600;
-              width: 40px;
+              width: 50px;
             }
             .players-table .name {
               font-weight: 600;
@@ -312,21 +361,21 @@ export const TeamRostersView: React.FC<TeamRostersViewProps> = ({
             }
             .players-table .price {
               font-weight: 700;
-              color: #16E0FF;
+              color: #6366f1;
               text-align: right;
             }
           </style>
         </head>
         <body>
           <div class="print-watermark">Game Grid</div>
-          
+
           <div class="header">
             <h1>${auctionName}</h1>
             <p>Official Franchise Roster Summary Sheet</p>
           </div>
-          
+
           ${rostersHtml}
-          
+
           <script>
             window.onload = function() {
               window.print();
@@ -351,7 +400,7 @@ export const TeamRostersView: React.FC<TeamRostersViewProps> = ({
 
   return (
     <Box sx={{ py: 3, display: 'flex', flexDirection: 'column', gap: 4 }}>
-      
+
       {/* Header (Hidden during Print) */}
       <Box className="no-print" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', pb: 2 }}>
         <Box>
@@ -375,7 +424,7 @@ export const TeamRostersView: React.FC<TeamRostersViewProps> = ({
       <Box className="no-print" sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         {rosters.map((roster) => {
           const filtered = roster.players;
-          
+
           // Calculate counts for each rule dynamically
           const ruleMetadata = auction?.rosterRules?.map((rule: any) => {
             const count = roster.players.filter(p => p.category?.replace(/\s+/g, ' ').trim().toLowerCase() === rule.category?.replace(/\s+/g, ' ').trim().toLowerCase()).length;
@@ -385,7 +434,7 @@ export const TeamRostersView: React.FC<TeamRostersViewProps> = ({
               needed: rule.minCount
             };
           }) || [];
-          
+
           return (
             <Card key={roster.teamId} sx={{ overflow: 'hidden' }}>
               <Box sx={{
