@@ -24,8 +24,6 @@ public class TeamConfig {
     @Min(value = 1, message = "Minimum players must be greater than zero")
     private Integer minimumPlayers;
 
-    @NotNull(message = "Maximum players count is required")
-    @Min(value = 1, message = "Maximum players must be greater than zero")
     private Integer maximumPlayers;
 
     private BigDecimal remainingPurse;

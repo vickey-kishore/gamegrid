@@ -82,6 +82,7 @@ export const ManagePlayersDialog: React.FC<ManagePlayersDialogProps> = ({
       list.add("Men");
       list.add("45+");
       list.add("U-19 Boys");
+      list.add("Veteran");
     }
     return Array.from(list);
   }, [rosterRules]);
@@ -128,15 +129,15 @@ export const ManagePlayersDialog: React.FC<ManagePlayersDialogProps> = ({
   const handleOpenRetainDialog = (ap: AuctionPlayerResponse) => {
     setRetainingPlayer(ap);
     setSelectedTeamId('');
-    setRetentionPrice(auction?.minimumBid || 1000);
+    setRetentionPrice(auction?.retentionPrice || auction?.minimumBid || 1000);
     setRetainDialogOpen(true);
   };
 
   const handleRetainSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!retainingPlayer || !selectedTeamId || !retentionPrice) {
-       alert('Please select a team and enter a retention price.');
-       return;
+      alert('Please select a team and enter a retention price.');
+      return;
     }
 
     try {
@@ -149,6 +150,7 @@ export const ManagePlayersDialog: React.FC<ManagePlayersDialogProps> = ({
       alert(`Player ${retainingPlayer.name} retained successfully!`);
       setRetainDialogOpen(false);
       fetchAuctionPlayers();
+      fetchAuctionTeams();
     } catch (err: any) {
       console.error(err);
       alert(err.response?.data?.message || 'Failed to retain player.');
@@ -186,11 +188,11 @@ export const ManagePlayersDialog: React.FC<ManagePlayersDialogProps> = ({
     setName(ap.name || '');
     setPhoneNumber(ap.phoneNumber || '');
     setEmail(ap.email || '');
-    
+
     // Normalize and match the player's category against uniqueCategories
     const normalizedPlayerCat = (ap.category || '').replace(/\s+/g, ' ').trim().toLowerCase();
     const matched = uniqueCategories.find(cat => cat.toLowerCase() === normalizedPlayerCat);
-    
+
     setPlayerCategory(matched || ap.category || uniqueCategories[0] || '');
     setClub(ap.club || '');
     setFormOpen(true);
@@ -449,7 +451,7 @@ export const ManagePlayersDialog: React.FC<ManagePlayersDialogProps> = ({
       (p.phoneNumber?.includes(search)) ||
       (p.email?.toLowerCase().includes(search.toLowerCase()));
 
-    const matchesCat = filterCategory === 'ALL' || 
+    const matchesCat = filterCategory === 'ALL' ||
       p.category?.replace(/\s+/g, ' ').trim().toLowerCase() === filterCategory.replace(/\s+/g, ' ').trim().toLowerCase();
 
     return matchesSearch && matchesCat;
@@ -746,7 +748,7 @@ export const ManagePlayersDialog: React.FC<ManagePlayersDialogProps> = ({
               <Typography variant="body2" color="text.secondary">
                 Select the team that will retain this player. The retention price will be deducted from the team's total budget.
               </Typography>
-              
+
               <FormControl fullWidth required>
                 <InputLabel id="retain-team-select-label">Select Retaining Team</InputLabel>
                 <Select
@@ -756,11 +758,16 @@ export const ManagePlayersDialog: React.FC<ManagePlayersDialogProps> = ({
                   onChange={(e) => setSelectedTeamId(e.target.value as number)}
                 >
                   <MenuItem value="" disabled>Select Team...</MenuItem>
-                  {teams.map(t => (
-                    <MenuItem key={t.id} value={t.id} disabled={t.remainingPurse < Number(retentionPrice)}>
-                      {t.teamName} (Purse Bal: ₹{t.remainingPurse})
-                    </MenuItem>
-                  ))}
+                  {teams
+                    .filter(t => {
+                      const retainedCount = players.filter(p => p.isRetained && p.teamName === t.teamName).length;
+                      return retainedCount < (auction?.maxRetainedPlayers || 99);
+                    })
+                    .map(t => (
+                      <MenuItem key={t.id} value={t.id} disabled={t.remainingPurse < Number(retentionPrice)}>
+                        {t.teamName} (Purse Bal: ₹{t.remainingPurse})
+                      </MenuItem>
+                    ))}
                 </Select>
               </FormControl>
 
@@ -769,9 +776,9 @@ export const ManagePlayersDialog: React.FC<ManagePlayersDialogProps> = ({
                 type="number"
                 fullWidth
                 required
+                disabled
                 value={retentionPrice}
-                onChange={(e) => setRetentionPrice(Number(e.target.value))}
-                helperText="This amount is fixed and will be adjusted with team's budget"
+                helperText="This amount is fixed from auction configuration"
               />
             </Box>
           </DialogContent>

@@ -15,7 +15,6 @@ interface TeamConfig {
   logoPath: string | null;
   purseAmount: number;
   minimumPlayers: number;
-  maximumPlayers: number | '';
 }
 
 const replaceBold = (text: string): React.ReactNode => {
@@ -29,20 +28,20 @@ const parseMarkdownToJSX = (text: string): React.ReactNode[] => {
 
   const rawLines = text.split('\n');
   const elements: React.ReactNode[] = [];
-  
+
   let i = 0;
   while (i < rawLines.length) {
     const line = rawLines[i];
     const trimmed = line.trim();
 
     // Robust Table Detection
-    if (trimmed.includes('|') && i + 1 < rawLines.length && rawLines[i+1].trim().includes('|') && /^[\s-:|]+$/.test(rawLines[i+1].trim().replace(/[a-zA-Z0-9]/g, ''))) {
+    if (trimmed.includes('|') && i + 1 < rawLines.length && rawLines[i + 1].trim().includes('|') && /^[\s-:|]+$/.test(rawLines[i + 1].trim().replace(/[a-zA-Z0-9]/g, ''))) {
       const tableLines: string[] = [];
       while (i < rawLines.length && rawLines[i].trim().includes('|')) {
         tableLines.push(rawLines[i].trim());
         i++;
       }
-      
+
       if (tableLines.length >= 2) {
         const parseRow = (rowStr: string) => {
           let cleaned = rowStr;
@@ -138,7 +137,7 @@ const parseMarkdownToJSX = (text: string): React.ReactNode[] => {
     // Bullet points
     if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
       const content = trimmed.substring(2);
-      const bulletStyle = indentMultiplier > 0 
+      const bulletStyle = indentMultiplier > 0
         ? { minWidth: 6, height: 6, border: '1.5px solid #FF0A88', borderRadius: '50%', mt: 0.9 }
         : { minWidth: 6, height: 6, borderRadius: '50%', bgcolor: '#16E0FF', mt: 0.9 };
 
@@ -197,7 +196,7 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
   ]);
 
   const handleCellChange = (rIdx: number, cIdx: number, val: string) => {
-    const updated = tableRows.map((row, r) => 
+    const updated = tableRows.map((row, r) =>
       row.map((cell, c) => (r === rIdx && c === cIdx ? val : cell))
     );
     setTableRows(updated);
@@ -238,27 +237,22 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
   const [minimumBid, setMinimumBid] = useState<number>(1000);
   const [bidIncrement, setBidIncrement] = useState<number>(500);
   const [maximumBid, setMaximumBid] = useState<number | ''>('');
-  const [rosterRules, setRosterRules] = useState<{ category: string; minCount: number; maxRetentionLimit: number }[]>([]);
+  const [rosterRules, setRosterRules] = useState<{ category: string; minCount: number; maxCount: number; maxRetentionLimit: number }[]>([]);
   const [allowRetention, setAllowRetention] = useState(false);
   const [maxRetainedPlayers, setMaxRetainedPlayers] = useState<number>(0);
+  const [retentionPrice, setRetentionPrice] = useState<number>(0);
 
   const [teams, setTeams] = useState<TeamConfig[]>([
-    { teamName: 'Team A', logoPath: null, purseAmount: 100000, minimumPlayers: 8, maximumPlayers: '' },
-    { teamName: 'Team B', logoPath: null, purseAmount: 100000, minimumPlayers: 8, maximumPlayers: '' }
+    { teamName: 'Team A', logoPath: null, purseAmount: 100000, minimumPlayers: 8 },
+    { teamName: 'Team B', logoPath: null, purseAmount: 100000, minimumPlayers: 8 }
   ]);
 
   // Common franchise settings
   const [commonPurse, setCommonPurse] = useState<number>(100000);
-  const [commonMinPlayers, setCommonMinPlayers] = useState<number>(8);
 
   const handleCommonPurseChange = (val: number) => {
     setCommonPurse(val);
     setTeams(prev => prev.map(t => ({ ...t, purseAmount: val })));
-  };
-
-  const handleCommonMinPlayersChange = (val: number) => {
-    setCommonMinPlayers(val);
-    setTeams(prev => prev.map(t => ({ ...t, minimumPlayers: val })));
   };
 
   const [loading, setLoading] = useState(false);
@@ -304,17 +298,21 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
       setMinimumBid(data.minimumBid);
       setBidIncrement(data.bidIncrement);
       setMaximumBid(data.maximumBid || '');
-      setRosterRules(data.rosterRules || []);
+      setRosterRules(data.rosterRules?.map((r: any) => ({
+        category: r.category,
+        minCount: r.minCount,
+        maxCount: r.maxCount ?? 99,
+        maxRetentionLimit: r.maxRetentionLimit || 0
+      })) || []);
       setAllowRetention(data.allowRetention || false);
       setMaxRetainedPlayers(data.maxRetainedPlayers || 0);
-      
+      setRetentionPrice(data.retentionPrice || 0);
+
       if (data.teams && data.teams.length > 0) {
         setCommonPurse(data.teams[0].purseAmount);
-        setCommonMinPlayers(data.teams[0].minimumPlayers);
-        
+
         const formattedTeams = data.teams.map((t: any) => ({
-          ...t,
-          maximumPlayers: (t.maximumPlayers === 99 || t.maximumPlayers === 999) ? '' : t.maximumPlayers
+          ...t
         }));
         setTeams(formattedTeams);
       }
@@ -333,10 +331,10 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
       const end = textarea.selectionEnd;
       const text = textarea.value;
       const selection = text.substring(start, end);
-      
+
       let insertedText = '';
       let cursorOffset = 0;
-      
+
       if (markupType === 'bold') {
         insertedText = `**${selection}**`;
         cursorOffset = selection ? selection.length + 4 : 2;
@@ -378,7 +376,7 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
       const after = text.substring(end, text.length);
       const newText = before + insertedText + after;
       setDescription(newText);
-      
+
       setTimeout(() => {
         textarea.focus();
         textarea.setSelectionRange(start + cursorOffset, start + cursorOffset);
@@ -386,14 +384,14 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
     } else {
       setDescription(prev => prev + (
         markupType === 'bold' ? '****' :
-        markupType === 'heading2' ? '## ' :
-        markupType === 'heading3' ? '### ' :
-        markupType === 'heading4' ? '#### ' :
-        markupType === 'bullet' ? '- ' :
-        markupType === 'sub-bullet' ? '  - ' :
-        markupType === 'table' ? '\n| Header 1 | Header 2 |\n|---|---|\n| Cell 1 | Cell 2 |\n| Cell 3 | Cell 4 |\n' :
-        markupType === 'divider' ? '\n---\n' :
-        markupType
+          markupType === 'heading2' ? '## ' :
+            markupType === 'heading3' ? '### ' :
+              markupType === 'heading4' ? '#### ' :
+                markupType === 'bullet' ? '- ' :
+                  markupType === 'sub-bullet' ? '  - ' :
+                    markupType === 'table' ? '\n| Header 1 | Header 2 |\n|---|---|\n| Cell 1 | Cell 2 |\n| Cell 3 | Cell 4 |\n' :
+                      markupType === 'divider' ? '\n---\n' :
+                        markupType
       ));
     }
   };
@@ -403,8 +401,7 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
       teamName: `Team ${String.fromCharCode(65 + teams.length)}`,
       logoPath: null,
       purseAmount: commonPurse,
-      minimumPlayers: commonMinPlayers,
-      maximumPlayers: ''
+      minimumPlayers: 8
     }]);
   };
 
@@ -460,7 +457,7 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
   };
 
   const handleAddRosterRule = () => {
-    setRosterRules([...rosterRules, { category: '', minCount: 1, maxRetentionLimit: 0 }]);
+    setRosterRules([...rosterRules, { category: '', minCount: 1, maxCount: 99, maxRetentionLimit: 0 }]);
   };
 
   const handleRemoveRosterRule = (index: number) => {
@@ -469,7 +466,7 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
     setRosterRules(newRules);
   };
 
-  const handleRosterRuleChange = (index: number, field: 'category' | 'minCount' | 'maxRetentionLimit', value: any) => {
+  const handleRosterRuleChange = (index: number, field: 'category' | 'minCount' | 'maxCount' | 'maxRetentionLimit', value: any) => {
     const newRules = [...rosterRules];
     newRules[index] = { ...newRules[index], [field]: value };
     setRosterRules(newRules);
@@ -504,14 +501,14 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
       rosterRules: rosterRules.filter(r => r.category.trim() !== ''),
       allowRetention,
       maxRetainedPlayers: allowRetention ? maxRetainedPlayers : 0,
+      retentionPrice: allowRetention ? retentionPrice : 0,
       auctionDate: auctionDate || null,
       description: description || null,
       minimumBid,
       bidIncrement,
       maximumBid: maximumBid === '' ? null : maximumBid,
       teams: teams.map(t => ({
-        ...t,
-        maximumPlayers: t.maximumPlayers === '' ? 99 : Number(t.maximumPlayers)
+        ...t
       }))
     };
 
@@ -570,7 +567,7 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
             <Card>
               <CardContent sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
                 <Typography variant="h5" color="secondary">Auction Information</Typography>
-                
+
                 <TextField
                   label="Auction Name"
                   required
@@ -581,65 +578,66 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
                 />
 
 
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, my: 1 }}>
-                   <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>Auction Events (Categories)</Typography>
-                   {events.map((evt, idx) => {
-                     const fallbackEvents = [
-                       "Men Doubles",
-                       "Reverse Men Doubles",
-                       "Veteran Doubles",
-                       "Jumbled Doubles",
-                       "Mixed Doubles",
-                       "Under 17 Boys Singles",
-                       "Under 17 Boys Doubles",
-                       "Under 19 Singles Singles",
-                       "Under 19 Boys Doubles",
-                       "Women Doubles"
-                     ];
-                     const eventsList = [...dbEvents.length > 0 ? dbEvents : fallbackEvents];
-                     if (evt && !eventsList.includes(evt)) {
-                       eventsList.push(evt);
-                     }
-                     return (
-                       <Box key={idx} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                         <FormControl fullWidth size="small" required>
-                           <InputLabel id={`event-select-label-${idx}`}>Event Category #{idx + 1}</InputLabel>
-                           <Select
-                             labelId={`event-select-label-${idx}`}
-                             value={evt}
-                             label={`Event Category #${idx + 1}`}
-                             onChange={(e) => handleEventChange(idx, e.target.value)}
-                           >
-                             {eventsList.map((dbEvt) => (
-                               <MenuItem key={dbEvt} value={dbEvt}>
-                                 {dbEvt}
-                               </MenuItem>
-                             ))}
-                           </Select>
-                         </FormControl>
-                         {events.length > 1 && (
-                           <IconButton color="error" size="small" onClick={() => handleRemoveEvent(idx)}>
-                             <Trash2 size={16} />
-                           </IconButton>
-                         )}
-                       </Box>
-                     );
-                   })}
-                   <Button
-                     variant="outlined"
-                     color="primary"
-                     size="small"
-                     startIcon={<Plus size={14} />}
-                     onClick={handleAddEvent}
-                     sx={{ alignSelf: 'flex-start' }}
-                   >
-                     Add Event
-                   </Button>
-                 </Box>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, my: 1 }}>
+                  <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>Auction Events (Categories)</Typography>
+                  {events.map((evt, idx) => {
+                    const fallbackEvents = [
+                      "Men Doubles",
+                      "Reverse Men Doubles",
+                      "Veteran Doubles",
+                      "Jumbled Doubles",
+                      "Mixed Doubles",
+                      "Under 17 Boys Singles",
+                      "Under 17 Boys Doubles",
+                      "Under 19 Singles Singles",
+                      "Under 19 Boys Doubles",
+                      "Women Doubles"
+                    ];
+                    const eventsList = [...dbEvents.length > 0 ? dbEvents : fallbackEvents];
+                    if (evt && !eventsList.includes(evt)) {
+                      eventsList.push(evt);
+                    }
+                    return (
+                      <Box key={idx} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                        <FormControl fullWidth size="small" required>
+                          <InputLabel id={`event-select-label-${idx}`}>Event Category #{idx + 1}</InputLabel>
+                          <Select
+                            labelId={`event-select-label-${idx}`}
+                            value={evt}
+                            label={`Event Category #${idx + 1}`}
+                            onChange={(e) => handleEventChange(idx, e.target.value)}
+                          >
+                            {eventsList.map((dbEvt) => (
+                              <MenuItem key={dbEvt} value={dbEvt}>
+                                {dbEvt}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                        {events.length > 1 && (
+                          <IconButton color="error" size="small" onClick={() => handleRemoveEvent(idx)}>
+                            <Trash2 size={16} />
+                          </IconButton>
+                        )}
+                      </Box>
+                    );
+                  })}
+                  <Button
+                    variant="outlined"
+                    color="primary"
+                    size="small"
+                    startIcon={<Plus size={14} />}
+                    onClick={handleAddEvent}
+                    sx={{ alignSelf: 'flex-start' }}
+                  >
+                    Add Event
+                  </Button>
+                </Box>
 
                 <TextField
                   label="Auction Date"
                   type="date"
+                  required
                   fullWidth
                   variant="outlined"
                   slotProps={{
@@ -732,7 +730,7 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
             <Card>
               <CardContent sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
                 <Typography variant="h5" color="secondary">Auction Rules</Typography>
-                
+
                 <TextField
                   label="Minimum Bid (Base Price)"
                   type="number"
@@ -753,7 +751,7 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
                   onChange={(e) => setBidIncrement(Number(e.target.value))}
                 />
 
-                 <TextField
+                <TextField
                   label="Maximum Bid (Optional)"
                   type="number"
                   fullWidth
@@ -777,89 +775,113 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
                 />
 
                 {allowRetention && (
-                  <TextField
-                    label="Maximum Retained Players per Team"
-                    type="number"
-                    fullWidth
-                    variant="outlined"
-                    value={maxRetainedPlayers}
-                    onChange={(e) => setMaxRetainedPlayers(Number(e.target.value))}
-                    helperText="Total limit of retained players each team can have"
-                  />
+                  <>
+                    <TextField
+                      label="Maximum Retained Players per Team"
+                      type="number"
+                      required
+                      fullWidth
+                      variant="outlined"
+                      value={maxRetainedPlayers}
+                      onChange={(e) => setMaxRetainedPlayers(Number(e.target.value))}
+                      helperText="Total limit of retained players each team can have"
+                    />
+                    <TextField
+                      label="Retention Player Price"
+                      type="number"
+                      required
+                      fullWidth
+                      variant="outlined"
+                      value={retentionPrice}
+                      onChange={(e) => setRetentionPrice(Number(e.target.value))}
+                      helperText="Price at which teams can retain their players"
+                    />
+                  </>
                 )}
 
-                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, my: 1 }}>
-                   <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>Roster Category Constraints</Typography>
-                   {rosterRules.map((rule, idx) => {
-                     const fallbackRosterCats = [
-                       "Men",
-                       "Women",
-                       "45+",
-                       "35+",
-                       "U-17 Boys",
-                       "U-19 Boys",
-                       "U-19 Girls",
-                       "U-17 Girls"
-                     ];
-                     const categoriesList = [...dbRosterCategories.length > 0 ? dbRosterCategories : fallbackRosterCats];
-                     if (rule.category && !categoriesList.includes(rule.category)) {
-                       categoriesList.push(rule.category);
-                     }
-                     return (
-                       <Box key={idx} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                         <FormControl size="small" required sx={{ flexGrow: 2, minWidth: '150px' }}>
-                           <InputLabel id={`roster-cat-label-${idx}`}>Category</InputLabel>
-                           <Select
-                             labelId={`roster-cat-label-${idx}`}
-                             value={rule.category}
-                             label="Category"
-                             onChange={(e) => handleRosterRuleChange(idx, 'category', e.target.value)}
-                           >
-                             {categoriesList.map((cat) => (
-                               <MenuItem key={cat} value={cat}>
-                                 {cat}
-                               </MenuItem>
-                             ))}
-                           </Select>
-                         </FormControl>
-                         <TextField
-                           label="Min Count"
-                           type="number"
-                           required
-                           variant="outlined"
-                           value={rule.minCount}
-                           onChange={(e) => handleRosterRuleChange(idx, 'minCount', Number(e.target.value))}
-                           size="small"
-                           sx={{ width: '90px' }}
-                         />
-                         {allowRetention && (
-                           <TextField
-                             label="Max Retain"
-                             type="number"
-                             variant="outlined"
-                             value={rule.maxRetentionLimit || 0}
-                             onChange={(e) => handleRosterRuleChange(idx, 'maxRetentionLimit', Number(e.target.value))}
-                             size="small"
-                             sx={{ width: '100px' }}
-                           />
-                         )}
-                         <IconButton color="error" size="small" onClick={() => handleRemoveRosterRule(idx)}>
-                           <Trash2 size={16} />
-                         </IconButton>
-                       </Box>
-                     );
-                   })}
-                   <Button
-                     variant="outlined"
-                     color="secondary"
-                     size="small"
-                     startIcon={<Plus size={14} />}
-                     onClick={handleAddRosterRule}
-                     sx={{ alignSelf: 'flex-start' }}
-                   >
-                     Add Constraint
-                   </Button>
-                 </Box>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, my: 1 }}>
+                  <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>Roster Category Constraints</Typography>
+                  {rosterRules.map((rule, idx) => {
+                    const fallbackRosterCats = [
+                      "Men",
+                      "Women",
+                      "Veteran",
+                      "45+",
+                      "35+",
+                      "U-17 Boys",
+                      "U-19 Boys",
+                      "U-19 Girls",
+                      "U-17 Girls"
+                    ];
+                    const categoriesList = [...dbRosterCategories.length > 0 ? dbRosterCategories : fallbackRosterCats];
+                    if (rule.category && !categoriesList.includes(rule.category)) {
+                      categoriesList.push(rule.category);
+                    }
+                    return (
+                      <Box key={idx} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                        <FormControl size="small" required sx={{ flexGrow: 2, minWidth: '150px' }}>
+                          <InputLabel id={`roster-cat-label-${idx}`}>Category</InputLabel>
+                          <Select
+                            labelId={`roster-cat-label-${idx}`}
+                            value={rule.category}
+                            label="Category"
+                            onChange={(e) => handleRosterRuleChange(idx, 'category', e.target.value)}
+                          >
+                            {categoriesList.map((cat) => (
+                              <MenuItem key={cat} value={cat}>
+                                {cat}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                        <TextField
+                          label="Min Count"
+                          type="number"
+                          required
+                          variant="outlined"
+                          value={rule.minCount}
+                          onChange={(e) => handleRosterRuleChange(idx, 'minCount', Number(e.target.value))}
+                          size="small"
+                          sx={{ width: '90px' }}
+                        />
+                        <TextField
+                          label="Max Count"
+                          type="number"
+                          required
+                          variant="outlined"
+                          value={rule.maxCount}
+                          onChange={(e) => handleRosterRuleChange(idx, 'maxCount', Number(e.target.value))}
+                          size="small"
+                          sx={{ width: '90px' }}
+                        />
+                        {allowRetention && (
+                          <TextField
+                            label="Max Retain"
+                            type="number"
+                            variant="outlined"
+                            value={rule.maxRetentionLimit || 0}
+                            onChange={(e) => handleRosterRuleChange(idx, 'maxRetentionLimit', Number(e.target.value))}
+                            size="small"
+                            sx={{ width: '100px' }}
+                          />
+                        )}
+                        <IconButton color="error" size="small" onClick={() => handleRemoveRosterRule(idx)}>
+                          <Trash2 size={16} />
+                        </IconButton>
+                      </Box>
+                    );
+                  })}
+                  <Button
+                    variant="outlined"
+                    color="secondary"
+                    size="small"
+                    startIcon={<Plus size={14} />}
+                    onClick={handleAddRosterRule}
+                    sx={{ alignSelf: 'flex-start' }}
+                  >
+                    Add Constraint
+                  </Button>
+                </Box>
               </CardContent>
             </Card>
           </Grid>
@@ -880,7 +902,7 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
                     Add Team
                   </Button>
                 </Box>
-                
+
                 <Divider />
 
                 {/* Common Team Settings Panel */}
@@ -894,14 +916,6 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
                     size="small"
                     value={commonPurse}
                     onChange={(e) => handleCommonPurseChange(Number(e.target.value))}
-                    sx={{ flex: 1, minWidth: '140px' }}
-                  />
-                  <TextField
-                    label="Minimum Players"
-                    type="number"
-                    size="small"
-                    value={commonMinPlayers}
-                    onChange={(e) => handleCommonMinPlayersChange(Number(e.target.value))}
                     sx={{ flex: 1, minWidth: '140px' }}
                   />
                 </Paper>
@@ -976,15 +990,6 @@ export const AuctionFormView: React.FC<AuctionFormViewProps> = ({
                           </Button>
                         </Box>
 
-                        <TextField
-                          label="Max Players (Optional)"
-                          type="number"
-                          fullWidth
-                          size="small"
-                          value={team.maximumPlayers}
-                          onChange={(e) => handleTeamChange(index, 'maximumPlayers', e.target.value === '' ? '' : Number(e.target.value))}
-                          placeholder="No limit"
-                        />
                       </Paper>
                     </Grid>
                   ))}

@@ -49,7 +49,7 @@ public class TeamService {
                 .purseAmount(config.getPurseAmount())
                 .remainingPurse(config.getPurseAmount())
                 .minimumPlayers(config.getMinimumPlayers())
-                .maximumPlayers(config.getMaximumPlayers())
+                .maximumPlayers(config.getMaximumPlayers() != null ? config.getMaximumPlayers() : 99)
                 .build();
 
         AuctionTeam saved = auctionTeamRepository.save(team);

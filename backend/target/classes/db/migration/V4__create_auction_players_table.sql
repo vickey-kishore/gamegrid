@@ -1,5 +1,5 @@
 CREATE TABLE auction_players (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     auction_id BIGINT NOT NULL,
     player_id BIGINT NOT NULL,
     base_price DECIMAL(12,2) NOT NULL,

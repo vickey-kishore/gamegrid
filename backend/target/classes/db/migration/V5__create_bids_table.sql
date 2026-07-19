@@ -1,5 +1,5 @@
 CREATE TABLE bids (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     auction_id BIGINT NOT NULL,
     player_id BIGINT NOT NULL,
     team_id BIGINT NOT NULL,

@@ -113,4 +113,17 @@ public class PlayerController {
         playerService.releaseRetainedPlayer(auctionId, playerId);
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/{playerId}/bid-again")
+    @Operation(summary = "Put an unsold player back up for bidding")
+    public ResponseEntity<Void> bidAgain(
+            @PathVariable("playerId") Long playerId,
+            @RequestBody java.util.Map<String, Long> request) {
+        Long auctionId = request.get("auctionId");
+        if (auctionId == null) {
+            throw new IllegalArgumentException("auctionId is required");
+        }
+        playerService.bidAgain(auctionId, playerId);
+        return ResponseEntity.ok().build();
+    }
 }

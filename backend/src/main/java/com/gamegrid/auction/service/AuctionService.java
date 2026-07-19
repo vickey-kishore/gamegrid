@@ -47,6 +47,7 @@ public class AuctionService {
                 .rosterRules(request.getRosterRules() == null ? new java.util.ArrayList<>() : request.getRosterRules())
                 .allowRetention(request.isAllowRetention())
                 .maxRetainedPlayers(request.getMaxRetainedPlayers() == null ? 0 : request.getMaxRetainedPlayers())
+                .retentionPrice(request.getRetentionPrice() == null ? BigDecimal.ZERO : request.getRetentionPrice())
                 .auctionDate(request.getAuctionDate())
                 .description(request.getDescription())
                 .minimumBid(request.getMinimumBid())
@@ -67,7 +68,7 @@ public class AuctionService {
                     .purseAmount(teamConfig.getPurseAmount())
                     .remainingPurse(teamConfig.getPurseAmount())
                     .minimumPlayers(teamConfig.getMinimumPlayers())
-                    .maximumPlayers(teamConfig.getMaximumPlayers())
+                    .maximumPlayers(teamConfig.getMaximumPlayers() != null ? teamConfig.getMaximumPlayers() : 99)
                     .build();
             AuctionTeam savedTeam = auctionTeamRepository.save(team);
             savedTeams.add(mapToTeamConfig(savedTeam));
@@ -99,6 +100,7 @@ public class AuctionService {
         auction.setRosterRules(request.getRosterRules() == null ? new java.util.ArrayList<>() : request.getRosterRules());
         auction.setAllowRetention(request.isAllowRetention());
         auction.setMaxRetainedPlayers(request.getMaxRetainedPlayers() == null ? 0 : request.getMaxRetainedPlayers());
+        auction.setRetentionPrice(request.getRetentionPrice() == null ? BigDecimal.ZERO : request.getRetentionPrice());
         auction.setAuctionDate(request.getAuctionDate());
         auction.setDescription(request.getDescription());
         auction.setMinimumBid(request.getMinimumBid());
@@ -160,7 +162,7 @@ public class AuctionService {
                 }
                 
                 team.setMinimumPlayers(teamConfig.getMinimumPlayers());
-                team.setMaximumPlayers(teamConfig.getMaximumPlayers());
+                team.setMaximumPlayers(teamConfig.getMaximumPlayers() != null ? teamConfig.getMaximumPlayers() : 99);
             } else {
                 team = AuctionTeam.builder()
                         .auction(savedAuction)
@@ -169,7 +171,7 @@ public class AuctionService {
                         .purseAmount(teamConfig.getPurseAmount())
                         .remainingPurse(teamConfig.getPurseAmount())
                         .minimumPlayers(teamConfig.getMinimumPlayers())
-                        .maximumPlayers(teamConfig.getMaximumPlayers())
+                        .maximumPlayers(teamConfig.getMaximumPlayers() != null ? teamConfig.getMaximumPlayers() : 99)
                         .build();
             }
             AuctionTeam savedTeam = auctionTeamRepository.save(team);
@@ -341,7 +343,7 @@ public class AuctionService {
             if (tc.getMinimumPlayers() <= 0) {
                 throw new IllegalArgumentException("Minimum players must be greater than zero for team: " + tc.getTeamName());
             }
-            if (tc.getMaximumPlayers() < tc.getMinimumPlayers()) {
+            if (tc.getMaximumPlayers() != null && tc.getMaximumPlayers() < tc.getMinimumPlayers()) {
                 throw new IllegalArgumentException("Maximum players must be greater than or equal to minimum players for team: " + tc.getTeamName());
             }
             if (!teamNames.add(tc.getTeamName().toLowerCase().trim())) {
@@ -377,6 +379,7 @@ public class AuctionService {
                 .rosterRules(auction.getRosterRules())
                 .allowRetention(auction.isAllowRetention())
                 .maxRetainedPlayers(auction.getMaxRetainedPlayers())
+                .retentionPrice(auction.getRetentionPrice())
                 .auctionDate(auction.getAuctionDate())
                 .description(auction.getDescription())
                 .minimumBid(auction.getMinimumBid())

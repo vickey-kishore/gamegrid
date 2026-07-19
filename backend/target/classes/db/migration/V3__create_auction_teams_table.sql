@@ -1,5 +1,5 @@
 CREATE TABLE auction_teams (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     auction_id BIGINT NOT NULL,
     team_name VARCHAR(255) NOT NULL,
     logo_path VARCHAR(255),

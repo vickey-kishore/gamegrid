@@ -647,6 +647,24 @@ public class PlayerService {
         auctionPlayerRepository.save(ap);
     }
 
+    @Transactional
+    public void bidAgain(Long auctionId, Long playerId) {
+        AuctionPlayer ap = auctionPlayerRepository.findByAuctionIdAndPlayerId(auctionId, playerId)
+                .orElseThrow(() -> new EntityNotFoundException("Player not registered in this auction"));
+
+        if (ap.getStatus() != PlayerStatus.Unsold) {
+            throw new IllegalArgumentException("Player is not in Unsold status.");
+        }
+
+        // Change status back to Available
+        ap.setStatus(PlayerStatus.Available);
+        ap.setSoldPrice(null);
+        ap.setTeam(null);
+        ap.setSoldAt(null);
+
+        auctionPlayerRepository.save(ap);
+    }
+
     private String processPhotoPath(String photo) {
         if (photo == null || photo.trim().isEmpty()) {
             return null;

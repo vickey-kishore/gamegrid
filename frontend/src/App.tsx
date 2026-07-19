@@ -100,9 +100,9 @@ export const App: React.FC = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      
+
       <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#0B1020' }}>
-        
+
         {/* LEFT SIDEBAR */}
         <Box
           sx={{
@@ -397,60 +397,25 @@ export const App: React.FC = () => {
           }}
         >
           {/* TOP BAR NAVIGATION */}
-          <Box
-            sx={{
-              height: 70,
-              backgroundColor: 'rgba(11, 16, 32, 0.85)',
-              backdropFilter: 'blur(10px)',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              px: 4,
-              position: 'sticky',
-              top: 0,
-              zIndex: 1000
-            }}
-            className="no-print"
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              {currentView === 'dashboard' ? (
-                /* Showcase Auction Title in Global Header during Live Auction */
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                  <Typography
-                    variant="h5"
-                    sx={{
-                      fontWeight: 900,
-                      color: '#ffffff',
-                      fontFamily: '"Rajdhani", sans-serif',
-                      textTransform: 'uppercase',
-                      letterSpacing: '1.25px',
-                      background: 'linear-gradient(90deg, #ffffff 0%, #16E0FF 100%)',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                      lineHeight: 1.2
-                    }}
-                  >
-                    {selectedAuctionName || 'LIVE AUCTION'}
-                  </Typography>
-                  <Chip
-                    label="LIVE"
-                    size="small"
-                    color="warning"
-                    sx={{
-                      fontWeight: 800,
-                      fontSize: '0.65rem',
-                      height: '18px',
-                      borderRadius: 1,
-                      px: 0.5,
-                      bgcolor: '#F59E0B',
-                      color: '#0B1020',
-                      boxShadow: '0 0 8px rgba(245, 158, 11, 0.4)'
-                    }}
-                  />
-                </Box>
-              ) : (
-                /* Search Input Box */
+          {currentView !== 'dashboard' && currentView !== 'create-auction' && currentView !== 'edit-auction' && (
+            <Box
+              sx={{
+                height: 70,
+                backgroundColor: 'rgba(11, 16, 32, 0.85)',
+                backdropFilter: 'blur(10px)',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                px: 4,
+                position: 'sticky',
+                top: 0,
+                zIndex: 1000
+              }}
+              className="no-print"
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                {/* Search Input Box */}
                 <Box
                   sx={{
                     display: 'flex',
@@ -475,35 +440,35 @@ export const App: React.FC = () => {
                     sx={{ ml: 1.5, fontSize: '0.85rem', width: '100%', color: '#ffffff' }}
                   />
                 </Box>
-              )}
-            </Box>
+              </Box>
 
-            {/* Topbar Right Controls */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Tooltip title="View Notifications">
-                <IconButton color="inherit" sx={{ border: '1px solid rgba(255,255,255,0.05)' }}>
-                  <Badge color="error" variant="dot">
-                    <Bell size={18} />
-                  </Badge>
-                </IconButton>
-              </Tooltip>
+              {/* Topbar Right Controls */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Tooltip title="View Notifications">
+                  <IconButton color="inherit" sx={{ border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <Badge color="error" variant="dot">
+                      <Bell size={18} />
+                    </Badge>
+                  </IconButton>
+                </Tooltip>
 
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, borderLeft: '1px solid rgba(255,255,255,0.1)', pl: 2 }}>
-                <Avatar
-                  src={currentUser?.picture || undefined}
-                  sx={{ bgcolor: currentUser?.role === 'CREATOR' ? '#16E0FF' : '#FF0A88', color: '#0B1020', width: 32, height: 32, fontSize: '0.85rem', fontWeight: 'bold' }}
-                >
-                  {currentUser?.name ? currentUser.name.substring(0, 2).toUpperCase() : 'GG'}
-                </Avatar>
-                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>{currentUser?.name}</Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                    {currentUser?.role === 'CREATOR' ? 'Organizer' : 'Player'}
-                  </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, borderLeft: '1px solid rgba(255,255,255,0.1)', pl: 2 }}>
+                  <Avatar
+                    src={currentUser?.picture || undefined}
+                    sx={{ bgcolor: currentUser?.role === 'CREATOR' ? '#16E0FF' : '#FF0A88', color: '#0B1020', width: 32, height: 32, fontSize: '0.85rem', fontWeight: 'bold' }}
+                  >
+                    {currentUser?.name ? currentUser.name.substring(0, 2).toUpperCase() : 'GG'}
+                  </Avatar>
+                  <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>{currentUser?.name}</Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                      {currentUser?.role === 'CREATOR' ? 'Organizer' : 'Player'}
+                    </Typography>
+                  </Box>
                 </Box>
               </Box>
             </Box>
-          </Box>
+          )}
 
           {/* MAIN PAGE CONTAINER VIEWPORT */}
           <Container maxWidth="xl" sx={{ flexGrow: 1, py: 4, px: { xs: 2, md: 4 } }}>

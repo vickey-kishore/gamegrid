@@ -59,6 +59,9 @@ public class Auction {
     @Column(name = "max_retained_players")
     private Integer maxRetainedPlayers = 0;
 
+    @Column(name = "retention_price")
+    private BigDecimal retentionPrice = BigDecimal.ZERO;
+
     @Builder.Default
     @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted = false;

@@ -1,6 +1,6 @@
 -- Create Tournament Table
 CREATE TABLE tournaments (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     venue VARCHAR(255) NOT NULL,
     logo_path VARCHAR(255),
@@ -11,12 +11,12 @@ CREATE TABLE tournaments (
     organizer_contact VARCHAR(50) NOT NULL,
     description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create Tournament Events Table
 CREATE TABLE tournament_events (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     tournament_id BIGINT NOT NULL,
     event_name VARCHAR(255) NOT NULL,
     event_type VARCHAR(50) NOT NULL, -- 'Singles', 'Doubles'
@@ -30,7 +30,7 @@ CREATE TABLE tournament_events (
 
 -- Create Event Participants Table
 CREATE TABLE event_participants (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     event_id BIGINT NOT NULL,
     participant_name VARCHAR(255) NOT NULL, -- "Player Name" or "Player1 / Player2"
     player1_name VARCHAR(255) NOT NULL,
@@ -43,13 +43,13 @@ CREATE TABLE event_participants (
 
 -- Create Fixture Matches Table
 CREATE TABLE fixture_matches (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     event_id BIGINT NOT NULL,
     round_number INT NOT NULL,
     match_number INT NOT NULL,
     participant1_id BIGINT,
     participant2_id BIGINT,
-    scheduled_time DATETIME,
+    scheduled_time TIMESTAMP,
     court_number VARCHAR(50),
     winner_id BIGINT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

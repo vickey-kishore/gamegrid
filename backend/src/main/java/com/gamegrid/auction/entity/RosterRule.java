@@ -12,5 +12,6 @@ import lombok.NoArgsConstructor;
 public class RosterRule {
     private String category;
     private int minCount;
+    private int maxCount;
     private int maxRetentionLimit;
 }

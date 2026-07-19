@@ -1,0 +1,1 @@
+ALTER TABLE auctions ADD COLUMN retention_price DECIMAL(19,2) DEFAULT 0.00;

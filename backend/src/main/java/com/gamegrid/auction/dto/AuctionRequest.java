@@ -22,6 +22,7 @@ public class AuctionRequest {
     private List<RosterRule> rosterRules;
     private boolean allowRetention;
     private Integer maxRetainedPlayers;
+    private BigDecimal retentionPrice;
 
     private LocalDate auctionDate;
     private String description;
